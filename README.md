@@ -1,1 +1,1 @@
-# CSSL
+# Continual Self-Supervised Learning (CSSL)
