@@ -1,0 +1,8 @@
+# ignore ALL .log files
+
+
+# ignore ALL files in ANY directory named temp
+CSSL/.venv/
+CSSL/data/
+CSSL/lightning_logs/
+__pycache__/
