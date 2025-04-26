@@ -4,61 +4,55 @@ import torch
 from tqdm import tqdm
 import pytorch_lightning as pl
 from torchvision.models import resnet18
-from utils import DataManager, get_model, get_data_loader, get_classifier
+from utils import DataManager, get_model, get_classifier
 from continuum.metrics.logger import Logger as LOGGER
 
 def main(args):
+    NUM_SCENARIO = args.num_scenario
+    for scenario_id in tqdm(range(NUM_SCENARIO), desc="Scenerio"):
 
-    data_manager = DataManager(
-        dataset_name=args.dataset,
-        shuffle=True,
-        seed=1992,
-        init_cls=10,
-        increment=10
-    )
-    
-    backbone = resnet18()
-    backbone.fc = torch.nn.Identity()
-    model, pretrain_transform = get_model(backbone, args)
-    logger = LOGGER()
+        backbone = resnet18()
+        backbone.fc = torch.nn.Identity()
+        model, pretrain_transform = get_model(backbone, args)
+        logger = LOGGER()
 
-    for current_task in tqdm(range(1, data_manager.nb_tasks), desc="Training tasks", unit="task"):
-        increment = data_manager.get_task_size(current_task)
-
-        pretrain_train_dataloader, classifier_train_dataloader, test_dataloader = get_data_loader(
-            data_manager=data_manager, 
-            current_task=current_task,
-            pretrain_transform=pretrain_transform,
-            args=args
+        data_manager = DataManager(
+            train_pretrain_transform=pretrain_transform,
+            args=args,
         )
 
-        # Train the model
-        trainer = pl.Trainer(
-            max_epochs=args.train_epochs, 
-            accelerator=args.device,
-            devices=args.gpu_devices
-        )
-        #trainer.fit(model, pretrain_train_dataloader)
+        train_pretrain_scenario, train_classifier_scenario, test_classifier_scenario = data_manager.get_scenerio(scenario_id)
 
-        classifier = get_classifier(
-            model.backbone, 
-            num_classes=increment*current_task,
-            logger=logger,
-            current_task=current_task-1,
-            args=args
-        )
+        for task_id, (train_pretrain_taskset, train_classifier_taskset) in tqdm(enumerate(zip(train_pretrain_scenario, train_classifier_scenario)), desc="Training tasks"):
+            test_classifier_taskset = test_classifier_scenario[:task_id+1]
+            train_pretrain_loader, train_classifier_loader, test_classifier_loader = data_manager.get_dataloader(train_pretrain_taskset, train_classifier_taskset, test_classifier_taskset, args)
 
-        # Evaluate the model
-        trainer = pl.Trainer(
-            max_epochs=args.test_epochs, 
-            accelerator=args.device,
-            devices=args.gpu_devices
-        )
-        trainer.fit(classifier, classifier_train_dataloader, test_dataloader)
-        logger.end_task()
+            '''
+            Train the model
+            '''
+            trainer = pl.Trainer(
+                max_epochs=args.train_epochs, 
+                accelerator=args.device,
+                devices=args.gpu_devices,
+            )
+            #trainer.fit(model, train_pretrain_loader)
 
+            '''
+            Evaluate the model
+            '''
+            classifier = get_classifier(
+                model.backbone, 
+                num_classes=10*(task_id+1),
+                logger=logger,
+                args=args
+            )
 
-
+            trainer = pl.Trainer(
+                max_epochs=args.test_epochs, 
+                accelerator=args.device,
+                devices=args.gpu_devices,
+            )
+            trainer.fit(classifier, train_classifier_loader, test_classifier_loader)
 
 
 

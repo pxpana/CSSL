@@ -6,7 +6,6 @@ from torch import Tensor
 class Classifier(LinearClassifier):
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
-        self.current_task = kwargs.pop("current_task", None)
         super().__init__(*args, **kwargs)
 
     def shared_step(
@@ -15,7 +14,8 @@ class Classifier(LinearClassifier):
         batch_idx: int,
         split: str
     ) -> Tuple[Tensor, Dict[int, Tensor]]:
-        images, targets = batch[0], batch[1]
+        images, targets, tasks = batch[0], batch[1], batch[2]
+
         predictions = self.forward(images)
         loss = self.criterion(predictions, targets)
         _, predicted_labels = predictions.topk(1)
@@ -25,8 +25,7 @@ class Classifier(LinearClassifier):
         self.log(
             f"{split}_loss", loss, prog_bar=True, sync_dist=True, batch_size=batch_size
         )
-        log_dict = self.continual_logger(predicted_labels, targets, split)
-        self.log_dict(log_dict, sync_dist=True, batch_size=batch_size, prog_bar=True)
+        self.continual_logger(predicted_labels, targets, tasks, split)
 
         return loss
 
@@ -47,17 +46,38 @@ class Classifier(LinearClassifier):
         loss = self.shared_step(batch=batch, batch_idx=batch_idx, split="val")
 
         return loss
+    
+    def on_validation_epoch_end(self):
+        if not self.trainer.sanity_checking:
+            log_dict = {
+                f"Accuracy": self.metrics_logger.accuracy,
+                f"AIC": self.metrics_logger.average_incremental_accuracy,
+                f"BWT": self.metrics_logger.backward_transfer,
+                f"FWT": self.metrics_logger.forward_transfer,
+                f"PBWT": self.metrics_logger.positive_backward_transfer,
+                f"Remembering": self.metrics_logger.remembering,
+                f"Forgetting": self.metrics_logger.forgetting,
+            }
 
-    def continual_logger(self, predicted_labels, targets, split):
-        self.metrics_logger.add([predicted_labels, targets, [self.current_task]], subset="test" if split=="val" else "train")
-        log_dict = {
-            f"Accuracy_{split}": self.metrics_logger.accuracy,
-            f"AIC_{split}": self.metrics_logger.average_incremental_accuracy,
-            f"BWT_{split}": self.metrics_logger.backward_transfer,
-            f"FWT_{split}": self.metrics_logger.forward_transfer,
-            f"PBWT_{split}": self.metrics_logger.positive_backward_transfer,
-            f"Remembering_{split}": self.metrics_logger.remembering,
-            f"Forgetting_{split}": self.metrics_logger.forgetting,
-        }
+            self.log_dict(log_dict, sync_dist=True, prog_bar=True)
+            self.metrics_logger.end_epoch()
 
-        return log_dict
+        return super().on_validation_epoch_end()
+    
+    def on_train_end(self):
+        self.metrics_logger.end_task()
+
+        return super().on_train_end()
+
+
+    def continual_logger(self, predicted_labels, targets, tasks, split):
+
+        if split=="val":
+            self.metrics_logger.add(
+                [
+                    predicted_labels, 
+                    targets, 
+                    tasks
+                ], 
+                subset="test" if split=="val" else "train"
+            )

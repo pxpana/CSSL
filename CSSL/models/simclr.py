@@ -35,7 +35,8 @@ class SimCLR(LightningModule):
         return output
     
     def training_step(self, batch, batch_index):
-        view0, view1 = batch[0], batch[1]
+        images, _, _ = batch
+        view0, view1 = images[:, 0], images[:, 1]
 
         z0 = self.forward(view0)["z"]
         z1 = self.forward(view1)["z"]
