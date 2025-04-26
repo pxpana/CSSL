@@ -3,7 +3,7 @@ import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from utils.data import iCIFAR10, iCIFAR100, iImageNet100, iImageNet1000
+from utils.data import iCIFAR100
 
 class DataManager(object):
     def __init__(self, dataset_name, shuffle, seed, init_cls, increment):
@@ -283,7 +283,7 @@ def default_loader(path):
     else:
         return pil_loader(path)
     
-def get_data_loader(data_manager, current_task, pretrain_transform, args):
+def get_data_loader_DEAD(data_manager, current_task, pretrain_transform, args):
     increment = data_manager.get_task_size(current_task)
 
     pretrain_train_dataset, classifier_train_dataset = data_manager.get_dataset(
@@ -296,13 +296,15 @@ def get_data_loader(data_manager, current_task, pretrain_transform, args):
     pretrain_train_dataloader = DataLoader(
         pretrain_train_dataset, 
         batch_size=args.train_batch_size, 
-        shuffle=True
+        shuffle=True,
+        num_workers=args.num_workers,
     )
 
     classifier_train_dataloader = DataLoader(
         classifier_train_dataset, 
         batch_size=args.train_batch_size, 
-        shuffle=True
+        shuffle=True,
+        num_workers=args.num_workers,
     )
 
     test_dataset = data_manager.get_dataset(
@@ -313,7 +315,46 @@ def get_data_loader(data_manager, current_task, pretrain_transform, args):
     test_dataloader = DataLoader(
         test_dataset, 
         batch_size=args.train_batch_size, 
-        shuffle=False
+        shuffle=False,
+        num_workers=args.num_workers,
+    )
+
+    return pretrain_train_dataloader, classifier_train_dataloader, test_dataloader
+
+def get_data_loader(train_taskset, test_taskset, pretrain_transform, args):
+    
+
+    pretrain_train_dataset, classifier_train_dataset = data_manager.get_dataset(
+        np.arange(increment*(current_task-1), increment*current_task),
+        source="train",
+        mode="train",
+        pretrain_transform=pretrain_transform
+    )
+
+    pretrain_train_dataloader = DataLoader(
+        pretrain_train_dataset, 
+        batch_size=args.train_batch_size, 
+        shuffle=True,
+        num_workers=args.num_workers,
+    )
+
+    classifier_train_dataloader = DataLoader(
+        classifier_train_dataset, 
+        batch_size=args.train_batch_size, 
+        shuffle=True,
+        num_workers=args.num_workers,
+    )
+
+    test_dataset = data_manager.get_dataset(
+        np.arange(0, increment*current_task), 
+        source="test", 
+        mode="test"
+    )
+    test_dataloader = DataLoader(
+        test_dataset, 
+        batch_size=args.train_batch_size, 
+        shuffle=False,
+        num_workers=args.num_workers,
     )
 
     return pretrain_train_dataloader, classifier_train_dataloader, test_dataloader
