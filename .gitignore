@@ -5,4 +5,11 @@
 CSSL/.venv/
 CSSL/data/
 CSSL/lightning_logs/
+CSSL/wandb/
+CSSL/CSSL/
 __pycache__/
+*/__pycache__/
+*/*/__pycache__/
+CSSL/*/__pycache__/
+
+v1.ipynb

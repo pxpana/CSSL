@@ -6,7 +6,7 @@ def get_model(backbone, args):
     name = args.model_name.lower()
     if name == "simclr":
         model = SimCLR(backbone=backbone, config=args)
-        pretrain_transform = SimCLRTransform()
+        pretrain_transform = SimCLRTransform(input_size=args.image_dim)
         transform = lambda x: torch.stack(pretrain_transform(x))
 
         return model, transform

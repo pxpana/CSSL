@@ -108,3 +108,36 @@ def save_model(args, model):
     else:
         weight = model._network.cpu()
     torch.save(weight, _path)
+
+from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import WandbLogger
+
+def get_callbacks_logger(args, training_type, task_id, scenario_id):
+
+    if training_type == "pretrain":
+        monitor = "train_loss"
+        mode = "min"
+    elif training_type == "classifier":
+        monitor = "Accuracy"
+        mode = "max"
+
+    callbacks = []
+    checkpoint_callback = ModelCheckpoint(
+                            monitor=monitor,
+                            filename=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}",           
+                            mode=mode,                    
+                            save_top_k=1,                 
+                            verbose=True                  
+                        )
+    callbacks.append(checkpoint_callback)
+
+    wandb_logger = WandbLogger(
+        name=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}",
+        #version=f"{args.model_name}_{args.dataset}_{training_type}2",
+        group=f"scenario_{scenario_id}",
+        config={"task_id": task_id, "scenario_id": scenario_id},
+        log_model=False, 
+        project="CSSL"
+    )
+
+    return callbacks, wandb_logger
