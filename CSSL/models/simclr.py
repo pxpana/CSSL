@@ -16,7 +16,7 @@ class SimCLR(LightningModule):
 
         self.backbone = backbone
         self.projection_head = SimCLRProjectionHead(
-            input_dim=512, hidden_dim=2048, output_dim=128
+            input_dim=512, hidden_dim=config.hidden_dim, output_dim=config.output_dim
         )
         
         self.criterion = loss.DCLWLoss()
@@ -64,7 +64,6 @@ class SimCLR(LightningModule):
                             },
                         ], 
                         lr=self.learning_rate * math.sqrt(self.batch_size * self.trainer.world_size),
-                        #lr=self.learning_rate, 
                         momentum=self.momentum, 
                         weight_decay=self.weight_decay)
         

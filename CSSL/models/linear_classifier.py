@@ -1,3 +1,4 @@
+import numpy as np
 from lightly.utils.benchmarking import LinearClassifier
 from typing import Any, Dict, List, Tuple, Union
 from lightly.utils.benchmarking.topk import mean_topk_accuracy
@@ -50,7 +51,8 @@ class Classifier(LinearClassifier):
     def on_validation_epoch_end(self):
         if not self.trainer.sanity_checking:
             log_dict = {
-                f"Accuracy": self.metrics_logger.accuracy,
+                f"Task Accuracy": self.metrics_logger.accuracy,
+                f"Accuracy": np.mean(self.metrics_logger.accuracy_per_task),
                 f"AIC": self.metrics_logger.average_incremental_accuracy,
                 f"BWT": self.metrics_logger.backward_transfer,
                 f"FWT": self.metrics_logger.forward_transfer,

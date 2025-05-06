@@ -46,9 +46,6 @@ class iCIFAR100(iData):
 class DataManager():
     def __init__(self, train_pretrain_transform, args, root="data"):
 
-        self.train_batch_size = args.train_batch_size
-        self.test_batch_size = args.test_batch_size
-
         train_dataset = CIFAR100(root, download=True, train=True)
         self.test_dataset = CIFAR100(root, download=True, train=False)
         train_classifier_transform, test_classifier_transform = prepare_transforms("cifar100")
@@ -87,9 +84,9 @@ class DataManager():
         return train_pretrain_scenario, train_classifier_scenario, test_classifier_scenario
     
     def get_dataloader(self, train_pretrain_taskset, train_classifier_taskset, test_classifier_taskset, args):
-        train_pretrain_loader = DataLoader(train_pretrain_taskset, batch_size=self.train_batch_size, num_workers=args.num_workers, shuffle=True)
-        train_classifier_loader = DataLoader(train_classifier_taskset, batch_size=self.test_batch_size, num_workers=args.num_workers, shuffle=True)
-        test_classifier_loader = DataLoader(test_classifier_taskset, batch_size=self.test_batch_size, num_workers=args.num_workers, shuffle=False)
+        train_pretrain_loader = DataLoader(train_pretrain_taskset, batch_size=args.train_batch_size, num_workers=args.num_workers, shuffle=True)
+        train_classifier_loader = DataLoader(train_classifier_taskset, batch_size=args.test_batch_size, num_workers=args.num_workers, shuffle=True)
+        test_classifier_loader = DataLoader(test_classifier_taskset, batch_size=args.test_batch_size, num_workers=args.num_workers, shuffle=False)
 
         return train_pretrain_loader, train_classifier_loader, test_classifier_loader
 
