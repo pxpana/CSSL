@@ -1,15 +1,19 @@
 import argparse
 import yaml
 import torch
+import wandb
 from tqdm import tqdm
 import pytorch_lightning as pl
+from pytorch_lightning import seed_everything
 from torchvision.models import resnet18
-from utils import DataManager, get_model, get_classifier
+from utils import DataManager, get_model, get_classifier, get_callbacks_logger
 from continuum.metrics.logger import Logger as LOGGER
 
 def main(args):
-    NUM_SCENARIO = args.num_scenario
-    for scenario_id in tqdm(range(NUM_SCENARIO), desc="Scenerio"):
+    seeds = args.seeds
+    for scenario_id in tqdm(seeds, desc="Scenerio"):
+
+        seed_everything(scenario_id)
 
         backbone = resnet18()
         backbone.fc = torch.nn.Identity()
@@ -27,6 +31,11 @@ def main(args):
             test_classifier_taskset = test_classifier_scenario[:task_id+1]
             train_pretrain_loader, train_classifier_loader, test_classifier_loader = data_manager.get_dataloader(train_pretrain_taskset, train_classifier_taskset, test_classifier_taskset, args)
 
+            pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(args, training_type="pretrain", task_id=task_id, scenario_id=scenario_id)
+            _, classifier_wandb_logger = get_callbacks_logger(args, training_type="classifier", task_id=task_id, scenario_id=scenario_id)
+
+            model, _ = get_model(model.backbone, args)
+
             '''
             Train the model
             '''
@@ -34,8 +43,11 @@ def main(args):
                 max_epochs=args.train_epochs, 
                 accelerator=args.device,
                 devices=args.gpu_devices,
+                accumulate_grad_batches=args.train_accumulate_grad_batches,
+                callbacks=pretrain_callbacks,
+                logger=pretrain_wandb_logger
             )
-            #trainer.fit(model, train_pretrain_loader)
+            trainer.fit(model, train_pretrain_loader)
 
             '''
             Evaluate the model
@@ -51,8 +63,13 @@ def main(args):
                 max_epochs=args.test_epochs, 
                 accelerator=args.device,
                 devices=args.gpu_devices,
+                enable_checkpointing=False,
+                logger=classifier_wandb_logger,
+                strategy='ddp_find_unused_parameters_true'
             )
             trainer.fit(classifier, train_classifier_loader, test_classifier_loader)
+
+            wandb.finish()
 
 
 
