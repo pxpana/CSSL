@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from torchvision.models import resnet18
-from utils import DataManager, get_model, get_classifier, get_callbacks_logger
+from utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger
 from continuum.metrics.logger import Logger as LOGGER
 
 def main(args):
@@ -14,10 +14,11 @@ def main(args):
     for scenario_id in tqdm(seeds, desc="Scenerio"):
 
         seed_everything(scenario_id)
+        torch.set_float32_matmul_precision(args.set_float32_matmul_precision)
 
         backbone = resnet18()
         backbone.fc = torch.nn.Identity()
-        model, pretrain_transform = get_model(backbone, args)
+        model, pretrain_transform = get_model(backbone, args), get_pretrain_transform(args)
         logger = LOGGER()
 
         data_manager = DataManager(
@@ -35,7 +36,7 @@ def main(args):
             pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(args, training_type="pretrain", task_id=task_id, scenario_id=scenario_id)
             _, classifier_wandb_logger = get_callbacks_logger(args, training_type="classifier", task_id=task_id, scenario_id=scenario_id)
 
-            model, _ = get_model(model.backbone, args)
+            model = get_model(model.backbone, args)
 
             '''
             Train the model
