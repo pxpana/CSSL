@@ -1,19 +1,20 @@
 import torch
-from models import SimCLR, Classifier
-from lightly.transforms import SimCLRTransform
 
 def get_model(backbone, args):
     name = args.model_name.lower()
     if name == "simclr":
+        from models import SimCLR
         model = SimCLR(backbone=backbone, config=args)
-        pretrain_transform = SimCLRTransform(input_size=args.image_dim)
-        transform = lambda x: torch.stack(pretrain_transform(x))
+    elif name == "mocov2":
+        from models import MoCov2
+        model = MoCov2(backbone=backbone, config=args)
 
-        return model, transform
-    else:
-        assert 0
+    return model
+
 
 def get_classifier(backbone, num_classes, logger, args):
+    from models import Classifier
+
     classifier = Classifier(
         model=backbone,
         batch_size_per_device=args.test_batch_size,
@@ -23,3 +24,17 @@ def get_classifier(backbone, num_classes, logger, args):
         logger=logger,
     )
     return classifier
+
+def get_pretrain_transform(args):
+    name = args.model_name.lower()
+    if name == "simclr":
+        from lightly.transforms import SimCLRTransform
+        pretrain_transform = SimCLRTransform(input_size=args.image_dim)
+        transform = lambda x: torch.stack(pretrain_transform(x))
+    elif name == "mocov2":
+        from lightly.transforms import MoCoV2Transform
+        pretrain_transform = MoCoV2Transform(input_size=args.image_dim)
+        transform = lambda x: torch.stack(pretrain_transform(x))
+    else:
+        assert 0
+    return transform
