@@ -5,7 +5,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from utils.data import iCIFAR100
 
-class DataManager(object):
+class DataManager_DEAD(object):
     def __init__(self, dataset_name, shuffle, seed, init_cls, increment):
         self.dataset_name = dataset_name
         self._setup_data(dataset_name, shuffle, seed)

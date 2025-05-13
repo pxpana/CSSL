@@ -18,6 +18,8 @@ def main(args):
 
         backbone = resnet18()
         backbone.fc = torch.nn.Identity()
+        backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        backbone.maxpool = torch.nn.Identity()
         model, pretrain_transform = get_model(backbone, args), get_pretrain_transform(args)
         logger = LOGGER()
 
@@ -29,6 +31,7 @@ def main(args):
         train_pretrain_scenario, train_classifier_scenario, test_classifier_scenario = data_manager.get_scenerio(scenario_id)
 
         for task_id, train_pretrain_taskset in tqdm(enumerate(train_pretrain_scenario), desc="Training tasks"):
+            print("TASK ID", task_id)
             train_classifier_taskset = train_classifier_scenario[:task_id+1]
             test_classifier_taskset = test_classifier_scenario[:task_id+1]
             train_pretrain_loader, train_classifier_loader, test_classifier_loader = data_manager.get_dataloader(train_pretrain_taskset, train_classifier_taskset, test_classifier_taskset, args)
@@ -56,7 +59,7 @@ def main(args):
             '''
             classifier = get_classifier(
                 model.backbone, 
-                num_classes=10*(task_id+1),
+                num_classes=args.class_increment*(task_id+1),
                 logger=logger,
                 args=args
             )
@@ -67,7 +70,7 @@ def main(args):
                 devices=args.gpu_devices,
                 enable_checkpointing=False,
                 logger=classifier_wandb_logger,
-                strategy='ddp_find_unused_parameters_true'
+                strategy='auto'
             )
             trainer.fit(classifier, train_classifier_loader, test_classifier_loader)
 

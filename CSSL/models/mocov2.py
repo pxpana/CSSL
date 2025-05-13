@@ -57,7 +57,7 @@ class MoCov2(BaseSSL):
 
         # Encode queries.
         outputs = self.forward(x_query)
-        query_features, query_projections = outputs["feats"], outputs["z"]
+        query_features, query_projections = outputs["features"], outputs["projection"]
 
         # Momentum update. This happens between query and key encoding, following the
         # original implementation from the authors:
