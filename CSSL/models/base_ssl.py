@@ -24,13 +24,17 @@ class BaseSSL(LightningModule):
         features = self.backbone(x).flatten(start_dim=1)
         z = self.projection_head(features)
 
-        output = {"feats": features, "z": z}
+        output = {"features": features, "projection": z}
         return output
-    
-    def configure_optimizers(self):
+
+    def get_params(self):
         params, params_no_weight_decay = get_weight_decay_parameters(
             [self.backbone, self.projection_head]
         )
+        return params, params_no_weight_decay
+    
+    def configure_optimizers(self):
+        params, params_no_weight_decay = self.get_params()
         
         # Don't use weight decay for batch norm, bias parameters, and classification
         # head to improve performance.

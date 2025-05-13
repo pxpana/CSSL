@@ -1,3 +1,4 @@
+import torch
 from lightly import loss
 from lightly.models.modules import SimCLRProjectionHead
 from lightly.utils.debug import std_of_l2_normalized
@@ -17,10 +18,10 @@ class SimCLR(BaseSSL):
         images, _, _ = batch
         view0, view1 = images[:, 0], images[:, 1]
 
-        z0 = self.forward(view0)["z"]
-        z1 = self.forward(view1)["z"]
+        z0 = self.forward(view0)["projection"]
+        z1 = self.forward(view1)["projection"]
         loss = self.criterion(z0, z1)
-        representation_std = (std_of_l2_normalized(z0) + std_of_l2_normalized(z1))/2
+        representation_std = std_of_l2_normalized(z0)
 
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)

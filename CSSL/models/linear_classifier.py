@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from lightly.utils.benchmarking import LinearClassifier
 from typing import Any, Dict, List, Tuple, Union
@@ -36,6 +37,7 @@ class Classifier(LinearClassifier):
         batch_idx: int
     ) -> Tensor:
         loss = self.shared_step(batch=batch, batch_idx=batch_idx, split="train")
+        images, targets, tasks = batch[0], batch[1], batch[2]
 
         return loss
 
@@ -53,7 +55,7 @@ class Classifier(LinearClassifier):
             accuracy_per_task = self.metrics_logger.accuracy_per_task
             log_dict = {
                 f"Task Accuracy": accuracy_per_task[-1],
-                f"Accuracy": np.mean(accuracy_per_task),
+                f"Accuracy": self.metrics_logger.accuracy,
                 f"AIC": self.metrics_logger.average_incremental_accuracy,
                 f"BWT": self.metrics_logger.backward_transfer,
                 f"FWT": self.metrics_logger.forward_transfer,

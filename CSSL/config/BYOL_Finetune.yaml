@@ -1,26 +1,24 @@
-model_name: "MoCov2"
+model_name: "BYOL"
 version: "v2"
 
 dataset: "cifar100"
 image_dim: 32
 
 num_classes: 100
-num_tasks: 5
-class_increment: 20
+num_tasks: 10
+class_increment: 10
 seeds: [5]
 
 feature_dim: 512
-hidden_dim: 2048
-output_dim: 128
+hidden_dim: 4096
+output_dim: 256
+prediction_dim: 4096
 
-queue_size: 65536
-temperature: 0.2
-
-train_learning_rate: 0.4
+train_learning_rate: 0.3
 weight_decay: 1.0e-4
 momentum: 0.9
-train_batch_size: 256
-train_accumulate_grad_batches: 1
+train_batch_size: 128
+train_accumulate_grad_batches: 2
 train_epochs: 500
 device: "gpu"
 num_devices: 1
@@ -29,7 +27,7 @@ gpu_devices: [0]
 test_batch_size: 256
 test_accumulate_grad_batches: 1
 test_epochs: 100
-test_learning_rate: 0.3
+test_learning_rate: 0.1
 
-num_workers: 4
+num_workers: 8
 set_float32_matmul_precision: "high"

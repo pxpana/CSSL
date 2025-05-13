@@ -1,30 +1,32 @@
-model_name: "SimCLR"
-version: "DLCW"
-dataset: "cifar100"
+model_name: "BarlowTwins"
+version: "v1"
 
+dataset: "cifar100"
 image_dim: 32
 
 num_classes: 100
+num_tasks: 10
+class_increment: 10
 seeds: [5]
 
 feature_dim: 512
 hidden_dim: 2048
-output_dim: 128
+output_dim: 2048
 
-train_learning_rate: 0.4
+train_learning_rate: 0.3
 weight_decay: 1.0e-4
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
 train_epochs: 500
 device: "gpu"
-num_devices: 2
-gpu_devices: [0, 1]
+num_devices: 1
+gpu_devices: [0]
 
 test_batch_size: 256
 test_accumulate_grad_batches: 1
 test_epochs: 100
 test_learning_rate: 0.1
 
-num_workers: 2
-set_float32_matmul_precision: "high"
+num_workers: 8
+set_float32_matmul_precision: "medium"

@@ -46,21 +46,21 @@ class iCIFAR100(iData):
 class DataManager():
     def __init__(self, train_pretrain_transform, args, root="data"):
 
+        self.num_tasks = args.num_tasks
+
         train_dataset = CIFAR100(root, download=True, train=True)
         self.test_dataset = CIFAR100(root, download=True, train=False)
         train_classifier_transform, test_classifier_transform = prepare_transforms("cifar100")
 
         train_pretrain_scenario = ClassIncremental(
             train_dataset,
-            nb_tasks=10,
-            increment=10,
+            nb_tasks=self.num_tasks,
             transformations=[train_pretrain_transform]
         )
 
         train_classifier_scenario = ClassIncremental(
             train_dataset,
-            nb_tasks=10,
-            increment=10,
+            nb_tasks=self.num_tasks,
             transformations=[train_classifier_transform]
         )
 
@@ -75,8 +75,7 @@ class DataManager():
 
         test_classifier_scenario = ClassIncremental(
             self.test_dataset,
-            nb_tasks=10,
-            increment=10,
+            nb_tasks=self.num_tasks,
             transformations=[self.test_classifier_transform],
             class_order=train_classifier_scenario.class_order
         )
