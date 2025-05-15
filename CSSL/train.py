@@ -6,7 +6,7 @@ from tqdm import tqdm
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from torchvision.models import resnet18
-from utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger
+from utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger, get_checkpoint
 from continuum.metrics.logger import Logger as LOGGER
 
 def main(args):
@@ -18,7 +18,7 @@ def main(args):
 
         backbone = resnet18()
         backbone.fc = torch.nn.Identity()
-        backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
         backbone.maxpool = torch.nn.Identity()
         model, pretrain_transform = get_model(backbone, args), get_pretrain_transform(args)
         logger = LOGGER()
@@ -56,6 +56,9 @@ def main(args):
                 sync_batchnorm=args.sync_batchnorm,
             )
             trainer.fit(model, train_pretrain_loader)
+
+            # load the best model
+            model = get_checkpoint(trainer, backbone, args)
 
             '''
             Evaluate the model

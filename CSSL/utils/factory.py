@@ -59,3 +59,29 @@ def get_pretrain_transform(args):
     else:
         assert 0
     return transform
+
+def get_checkpoint(trainer, backbone, args):
+    name = args.model_name.lower()
+    if name == "simclr":
+        from models import SimCLR
+        Module = SimCLR
+    elif name == "mocov2":
+        from models import MoCov2
+        Module = MoCov2
+    elif name == "byol":
+        from models import BYOL
+        Module = BYOL
+    elif name == "barlowtwins":
+        from models import BarlowTwins
+        Module = BarlowTwins
+    elif name == "swav":
+        from models import SwAV
+        Module = SwAV
+
+    model = Module.load_from_checkpoint(
+        trainer.checkpoint_callback.best_model_path,
+        backbone=backbone,
+        config=args
+    )
+
+    return model
