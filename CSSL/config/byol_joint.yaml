@@ -1,0 +1,38 @@
+model_name: "BYOL"
+version: "v2"
+
+dataset: "cifar100"
+image_dim: 32
+
+num_tasks: 1
+num_classes: 100
+class_increment: 100
+seeds: [5]
+
+feature_dim: 512
+hidden_dim: 4096
+output_dim: 256
+prediction_dim: 4096
+
+train_learning_rate: 1.0
+weight_decay: 1.0e-5
+momentum: 0.9
+train_batch_size: 256
+train_accumulate_grad_batches: 1
+train_epochs: 1000
+
+test_batch_size: 256
+test_accumulate_grad_batches: 1
+test_epochs: 100
+classifier_learning_rate: 0.1
+
+num_workers: 8
+set_float32_matmul_precision: "high"
+
+# overwrite Pytorch Lightening default
+num_devices: 1
+gpu_devices: [0]
+sync_batchnorm: True
+accelerator: "gpu"
+strategy: "auto"
+precision: 16-mixed

@@ -46,11 +46,14 @@ def main(args):
             '''
             trainer = pl.Trainer(
                 max_epochs=args.train_epochs, 
-                accelerator=args.device,
+                accelerator=args.accelerator,
                 devices=args.gpu_devices,
                 accumulate_grad_batches=args.train_accumulate_grad_batches,
                 callbacks=pretrain_callbacks,
-                logger=pretrain_wandb_logger
+                logger=pretrain_wandb_logger,
+                strategy=args.strategy,
+                precision=args.precision,
+                sync_batchnorm=args.sync_batchnorm,
             )
             trainer.fit(model, train_pretrain_loader)
 
@@ -66,11 +69,13 @@ def main(args):
 
             trainer = pl.Trainer(
                 max_epochs=args.test_epochs, 
-                accelerator=args.device,
+                accelerator=args.accelerator,
                 devices=args.gpu_devices,
                 enable_checkpointing=False,
                 logger=classifier_wandb_logger,
-                strategy='auto'
+                strategy=args.strategy,
+                precision=args.precision,
+                sync_batchnorm=args.sync_batchnorm,
             )
             trainer.fit(classifier, train_classifier_loader, test_classifier_loader)
 
@@ -84,7 +89,8 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=str, help="Name of config file")
     args, remaining_args = parser.parse_known_args()
 
-    with open(f"config/{args.config}.yaml", 'r') as file:
+    config_name = args.config.lower()
+    with open(f"config/{config_name}.yaml", 'r') as file:
         config = yaml.safe_load(file)
     parser.set_defaults(**config)            # Set argparse defaults from YAML
     args = parser.parse_args(remaining_args) # Re-parse args with YAML defaults
