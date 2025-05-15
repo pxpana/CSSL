@@ -2,7 +2,7 @@ import math
 from pytorch_lightning import LightningModule
 
 from lightly.models.utils import get_weight_decay_parameters
-from lightly.utils.lars import LARS
+from utils import LARS
 from lightly.utils.scheduler import CosineWarmupScheduler
 
 class BaseSSL(LightningModule):
@@ -18,6 +18,8 @@ class BaseSSL(LightningModule):
             self.weight_decay = config.weight_decay
             self.momentum = config.momentum
             self.batch_size = (config.train_batch_size*config.train_accumulate_grad_batches)/config.num_devices
+            self.trust_coefficient = config.trust_coefficient
+            self.clip_lr = config.clip_lr
             self.name = config.model_name
 
     def forward(self, x):
@@ -48,7 +50,9 @@ class BaseSSL(LightningModule):
                         ], 
                         lr=self.learning_rate * math.sqrt(self.batch_size * self.trainer.world_size),
                         momentum=self.momentum, 
-                        weight_decay=self.weight_decay)
+                        weight_decay=self.weight_decay,
+                        trust_coefficient=self.trust_coefficient,
+                        clip_lr=self.clip_lr)
         
         scheduler = {
             "scheduler": CosineWarmupScheduler(
