@@ -28,7 +28,7 @@ def get_classifier(backbone, num_classes, logger, args):
     classifier = Classifier(
         model=backbone,
         batch_size_per_device=args.test_batch_size,
-        lr=args.classifier_learning_rate,
+        lr=args.optimizer["classifier_learning_rate"],
         feature_dim=args.feature_dim,
         num_classes=num_classes,
         logger=logger,
