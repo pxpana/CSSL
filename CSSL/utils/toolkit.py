@@ -132,7 +132,7 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id):
     callbacks.append(checkpoint_callback)
 
     wandb_logger = WandbLogger(
-        name=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}",
+        name=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}/{args.num_tasks}",
         #version=f"{args.model_name}_{args.dataset}_{training_type}2",
         group=f"scenario_{scenario_id}",
         config={"task_id": task_id, "scenario_id": scenario_id},
