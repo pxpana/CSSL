@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from lightly.loss import BarlowTwinsLoss
+from loss import BarlowTwinsLoss
 from lightly.models.modules import BarlowTwinsProjectionHead
 from lightly.models.utils import (
     batch_shuffle,
@@ -27,7 +27,10 @@ class BarlowTwins(BaseSSL):
             output_dim=config.output_dim
         )
 
-        self.criterion = BarlowTwinsLoss(lambda_param=config.scale_loss)
+        self.criterion = BarlowTwinsLoss(
+            lambda_param=config.lambda_param, 
+            scale_loss=config.scale_loss
+        )
 
     def training_step(self, batch, batch_index):
         images, _, _ = batch

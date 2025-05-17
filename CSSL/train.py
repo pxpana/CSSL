@@ -11,6 +11,8 @@ from continuum.metrics.logger import Logger as LOGGER
 
 def main(args):
     seeds = args.seeds
+    class_increment = int(args.num_classes / args.num_tasks)
+
     for scenario_id in tqdm(seeds, desc="Scenerio"):
 
         seed_everything(scenario_id)
@@ -65,7 +67,7 @@ def main(args):
             '''
             classifier = get_classifier(
                 model.backbone, 
-                num_classes=args.class_increment*(task_id+1),
+                num_classes=class_increment*(task_id+1),
                 logger=logger,
                 args=args
             )

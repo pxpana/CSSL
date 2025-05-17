@@ -12,7 +12,9 @@ seeds: [5]
 feature_dim: 512
 hidden_dim: 2048
 output_dim: 2048
-scale_loss: 0.005
+
+scale_loss: 0.025
+lambda_param: 5.0e-3
 
 trust_coefficient: 0.02
 clip_lr: True
@@ -41,7 +43,7 @@ gpu_devices: [0]
 sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
-precision: 32-true
+precision: 16-mixed
 
 # Hard defaults
 reference_batch_size: 256

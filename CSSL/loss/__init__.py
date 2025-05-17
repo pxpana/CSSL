@@ -1,0 +1,1 @@
+from loss.barlow_twins_loss import BarlowTwinsLoss
