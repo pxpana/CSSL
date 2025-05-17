@@ -1,4 +1,4 @@
-model_name: "MoCov2"
+model_name: "MoCov2Plus"
 version: "v2"
 
 dataset: "cifar100"
@@ -13,7 +13,7 @@ feature_dim: 512
 hidden_dim: 2048
 output_dim: 128
 
-queue_size: 65536
+queue_size: 32768
 temperature: 0.2
 
 train_learning_rate: 0.4

@@ -1,4 +1,4 @@
-model_name: "SimCLR"
+model_name: "SimSiam"
 version: "v1"
 
 dataset: "cifar100"
@@ -6,33 +6,32 @@ image_dim: 32
 
 num_classes: 100
 num_tasks: 1
-class_increment: 100
 seeds: [5]
 
 feature_dim: 512
-hidden_dim: 2048
-output_dim: 256
-trust_coefficient: 0.02
-clip_lr: True
+proj_hidden_dim: 2048
+output_dim: 2048
+prediction_dim: 2048
+pred_hidden_dim: 512
+
+temperature: 0.2
 
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
 train_epochs: 1000
 
-optimizer:
-  name: "lars"
-  train_learning_rate: 0.4
-  classifier_learning_rate: 0.1
-  weight_decay: 1.0e-4
-
-temperature: 0.2
-
 test_batch_size: 256
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
-num_workers: 8
+optimizer:
+  name: "sgd"
+  train_learning_rate: 0.5
+  classifier_learning_rate: 0.1
+  weight_decay: 1.0e-5
+
+num_workers: 4
 set_float32_matmul_precision: "high"
 
 # overwrite Pytorch Lightening default

@@ -1,4 +1,4 @@
-model_name: "MoCov2"
+model_name: "MoCov2Plus"
 version: "v2"
 
 dataset: "cifar100"
@@ -16,7 +16,6 @@ output_dim: 256
 queue_size: 32768
 temperature: 0.2
 
-weight_decay: 1.0e-4
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1

@@ -12,7 +12,10 @@ class SimCLR(BaseSSL):
         self.projection_head = SimCLRProjectionHead(
             input_dim=512, hidden_dim=config.hidden_dim, output_dim=config.output_dim
         )
-        self.criterion = loss.DCLWLoss()
+        self.criterion = loss.NTXentLoss(
+            temperature=config.temperature,
+            gather_distributed=True,
+        )
     
     def training_step(self, batch, batch_index):
         images, _, _ = batch

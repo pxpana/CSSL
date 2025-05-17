@@ -9,12 +9,18 @@ def get_model(backbone, args):
     elif name == "mocov2":
         from models import MoCov2
         model = MoCov2(backbone=backbone, config=args)
+    elif name == "mocov2plus":
+        from models import MoCov2Plus
+        model = MoCov2Plus(backbone=backbone, config=args)
     elif name == "byol":
         from models import BYOL
         model = BYOL(backbone=backbone, config=args)
     elif name == "barlowtwins":
         from models import BarlowTwins
         model = BarlowTwins(backbone=backbone, config=args)
+    elif name == "simsiam":
+        from models import SimSiam
+        model = SimSiam(backbone=backbone, config=args)
     elif name == "swav":
         from models import SwAV
         model = SwAV(backbone=backbone, config=args)
@@ -45,12 +51,20 @@ def get_pretrain_transform(args):
         from lightly.transforms import MoCoV2Transform
         pretrain_transform = MoCoV2Transform(input_size=args.image_dim)
         transform = lambda x: torch.stack(pretrain_transform(x))
+    elif name == "mocov2plus":
+        from lightly.transforms import MoCoV2Transform
+        pretrain_transform = MoCoV2Transform(input_size=args.image_dim, gaussian_blur=0.5)
+        transform = lambda x: torch.stack(pretrain_transform(x))
     elif name in ["byol", "barlowtwins"]:
         from lightly.transforms import BYOLTransform
         pretrain_transform = BYOLTransform(
             lightly.transforms.BYOLView1Transform(input_size=args.image_dim),
             lightly.transforms.BYOLView2Transform(input_size=args.image_dim)
             )
+        transform = lambda x: torch.stack(pretrain_transform(x))
+    elif name == "simsiam":
+        from lightly.transforms import SimSiamTransform
+        pretrain_transform = SimSiamTransform(input_size=args.image_dim)
         transform = lambda x: torch.stack(pretrain_transform(x))
     elif name == "swav":
         from lightly.transforms import SwaVTransform
@@ -74,6 +88,9 @@ def get_checkpoint(trainer, backbone, args):
     elif name == "barlowtwins":
         from models import BarlowTwins
         Module = BarlowTwins
+    elif name == "SimSiam":
+        from models import SimSiam
+        Module = SimSiam
     elif name == "swav":
         from models import SwAV
         Module = SwAV
