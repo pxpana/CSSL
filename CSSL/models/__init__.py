@@ -5,4 +5,5 @@ from models.byol import BYOL
 from models.barlow_twins import BarlowTwins
 from models.swav import SwAV
 from models.simsiam import SimSiam
+from models.vicreg import VICReg
 from models.linear_classifier import Classifier

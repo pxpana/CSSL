@@ -21,6 +21,9 @@ def get_model(backbone, args):
     elif name == "simsiam":
         from models import SimSiam
         model = SimSiam(backbone=backbone, config=args)
+    elif name == "vicreg":
+        from models import VICReg
+        model = VICReg(backbone=backbone, config=args)
     elif name == "swav":
         from models import SwAV
         model = SwAV(backbone=backbone, config=args)
@@ -66,6 +69,10 @@ def get_pretrain_transform(args):
         from lightly.transforms import SimSiamTransform
         pretrain_transform = SimSiamTransform(input_size=args.image_dim)
         transform = lambda x: torch.stack(pretrain_transform(x))
+    elif name == "vicreg":
+        from lightly.transforms import VICRegTransform
+        pretrain_transform = VICRegTransform(input_size=args.image_dim)
+        transform = lambda x: torch.stack(pretrain_transform(x))
     elif name == "swav":
         from lightly.transforms import SwaVTransform
         pretrain_transform = SwaVTransform(crop_sizes=args.crop_sizes)
@@ -82,15 +89,21 @@ def get_checkpoint(trainer, backbone, args):
     elif name == "mocov2":
         from models import MoCov2
         Module = MoCov2
+    elif name == "mocov2plus":
+        from models import MoCov2Plus
+        Module = MoCov2
     elif name == "byol":
         from models import BYOL
         Module = BYOL
     elif name == "barlowtwins":
         from models import BarlowTwins
         Module = BarlowTwins
-    elif name == "SimSiam":
+    elif name == "simsiam":
         from models import SimSiam
         Module = SimSiam
+    elif name == "vicreg":
+        from models import VICReg
+        Module = VICReg
     elif name == "swav":
         from models import SwAV
         Module = SwAV
