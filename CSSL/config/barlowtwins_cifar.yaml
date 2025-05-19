@@ -1,39 +1,36 @@
-model_name: "SwAV"
-version: "v1"
+model_name: "BarlowTwins"
 
 dataset: "cifar100"
 image_dim: 32
 
-num_tasks: 1
 num_classes: 100
-class_increment: 100
+num_tasks: 5
 seeds: [5]
 
 feature_dim: 512
 hidden_dim: 2048
-output_dim: 128
+output_dim: 2048
 
-queue_size: 3840
-num_prototypes: 3000
-start_queue_at_epoch: 50
-freeze_prototypes_epochs: 2
-temperature: 0.1
-crop_sizes: [32, 16]
+scale_loss: 0.025
+lambda_param: 5.0e-3
 
-train_learning_rate: 0.6
-weight_decay: 1.0e-6
+trust_coefficient: 0.02
+clip_lr: True
+
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
 train_epochs: 1000
-accelerator: "gpu"
-num_devices: 1
-gpu_devices: [0]
 
 test_batch_size: 256
 test_accumulate_grad_batches: 1
 test_epochs: 100
-classifier_learning_rate: 0.1
+
+optimizer:
+  name: "lars"
+  train_learning_rate: 0.3
+  classifier_learning_rate: 0.1
+  weight_decay: 1.0e-4
 
 num_workers: 8
 set_float32_matmul_precision: "high"
@@ -44,4 +41,7 @@ gpu_devices: [0]
 sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
-precision: 32-true
+precision: 16-mixed
+
+# Hard defaults
+reference_batch_size: 256

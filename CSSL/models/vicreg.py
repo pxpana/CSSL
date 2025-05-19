@@ -20,7 +20,7 @@ class VICReg(BaseSSL):
             mu_param=config.var_loss_weight,
             nu_param=config.cov_loss_weight,
             gather_distributed=config.gather_distributed,
-            eps=config.eps
+            eps=config.epsilon
         )
     
     def training_step(self, batch, batch_index):

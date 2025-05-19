@@ -23,13 +23,13 @@ class BYOL(BaseSSL):
 
         self.projection_head = BYOLProjectionHead(
             input_dim=config.feature_dim, 
-            hidden_dim=config.hidden_dim, 
-            output_dim=config.prediction_dim
+            hidden_dim=config.projection_hidden_dim, 
+            output_dim=config.projection_output_dim
         )
         self.prediction_head = BYOLPredictionHead(
-            input_dim=config.prediction_dim, 
-            hidden_dim=config.hidden_dim, 
-            output_dim=config.prediction_dim
+            input_dim=config.projection_output_dim,
+            hidden_dim=config.prediction_hidden_dim, 
+            output_dim=config.projection_output_dim
         )
 
         self.backbone_momentum = copy.deepcopy(self.backbone)
@@ -39,6 +39,9 @@ class BYOL(BaseSSL):
         deactivate_requires_grad(self.projection_head_momentum)
 
         self.criterion = loss.NegativeCosineSimilarity()
+
+        self.start_value = config.momentum_encoder["base_tau"]
+        self.end_value = config.momentum_encoder["final_tau"]
 
     def forward(self, x):
         features = self.backbone(x).flatten(start_dim=1)
@@ -61,8 +64,8 @@ class BYOL(BaseSSL):
         momentum = cosine_schedule(
             step=self.trainer.global_step,
             max_steps=self.trainer.estimated_stepping_batches,
-            start_value=0.99,
-            end_value=1.0,
+            start_value=self.start_value,
+            end_value=self.end_value,
         )
         update_momentum(self.backbone, self.backbone_momentum, m=momentum)
         update_momentum(self.projection_head, self.projection_head_momentum, m=momentum)

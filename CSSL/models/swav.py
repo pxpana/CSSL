@@ -21,10 +21,13 @@ class SwAV(BaseSSL):
 
         self.projection_head = SwaVProjectionHead(
             input_dim=config.feature_dim, 
-            hidden_dim=config.hidden_dim, 
-            output_dim=config.output_dim
+            hidden_dim=config.projection_hidden_dim, 
+            output_dim=config.projection_output_dim
         )
-        self.prototypes = SwaVPrototypes(n_prototypes=config.num_prototypes, n_steps_frozen_prototypes=config.freeze_prototypes_epochs)
+        self.prototypes = SwaVPrototypes(
+            n_prototypes=config.num_prototypes, 
+            n_steps_frozen_prototypes=config.freeze_prototypes_epochs
+        )
         self.criterion = SwaVLoss(temperature=config.temperature)
 
         # Use a queue for small batch sizes (<= 256).
