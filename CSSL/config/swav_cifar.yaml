@@ -1,17 +1,23 @@
-model_name: "SimCLR"
-version: "v1"
+model_name: "SwAV"
 
 dataset: "cifar100"
 image_dim: 32
 
 num_classes: 100
 num_tasks: 1
-class_increment: 100
 seeds: [5]
 
 feature_dim: 512
-hidden_dim: 2048
-output_dim: 256
+projection_hidden_dim: 2048
+projection_output_dim: 128
+
+queue_size: 3840
+num_prototypes: 3000
+start_queue_at_epoch: 50
+freeze_prototypes_epochs: 2
+temperature: 0.1
+crop_sizes: [32, 16]
+
 trust_coefficient: 0.02
 clip_lr: True
 
@@ -20,19 +26,17 @@ train_batch_size: 256
 train_accumulate_grad_batches: 1
 train_epochs: 1000
 
-optimizer:
-  name: "lars"
-  train_learning_rate: 0.4
-  classifier_learning_rate: 0.1
-  weight_decay: 1.0e-4
-
-temperature: 0.2
-
 test_batch_size: 256
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
-num_workers: 8
+optimizer:
+  name: "lars"
+  train_learning_rate: 0.6
+  classifier_learning_rate: 0.1
+  weight_decay: 1.0e-6
+
+num_workers: 4
 set_float32_matmul_precision: "high"
 
 # overwrite Pytorch Lightening default
@@ -42,6 +46,3 @@ sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
 precision: 16-mixed
-
-# Hard defaults
-reference_batch_size: 256
