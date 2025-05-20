@@ -76,7 +76,22 @@ def get_pretrain_transform(args):
     elif name == "swav":
         from lightly.transforms import SwaVTransform
         pretrain_transform = SwaVTransform(crop_sizes=args.crop_sizes)
-        transform = lambda x: torch.stack(pretrain_transform(x))
+        def transform(x):
+            transformed = pretrain_transform(x)
+            num_crops = len(transformed)
+            global_crops, mini_crops = [], []
+            for i in range(num_crops):
+                if transformed[0].shape[-1]==max(args.crop_sizes):
+                    global_crops.append(transformed.pop(0))
+                elif transformed[0].shape[-1]==min(args.crop_sizes):
+                    mini_crops.append(transformed.pop(0))
+
+            global_crops = torch.stack(global_crops)
+            mini_crops = torch.stack(mini_crops)
+            
+            return [global_crops, mini_crops]
+
+        #transform = lambda x: torch.stack(pretrain_transform(x))
     else:
         assert 0
     return transform
@@ -91,7 +106,7 @@ def get_checkpoint(trainer, backbone, args):
         Module = MoCov2
     elif name == "mocov2plus":
         from models import MoCov2Plus
-        Module = MoCov2
+        Module = MoCov2Plus
     elif name == "byol":
         from models import BYOL
         Module = BYOL

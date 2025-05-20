@@ -1,5 +1,4 @@
 model_name: "MoCov2Plus"
-version: "v2"
 
 dataset: "cifar100"
 image_dim: 32

@@ -23,13 +23,13 @@ class SimSiam(BaseSSL):
 
         self.projection_head = SimSiamProjectionHead(
             input_dim=config.feature_dim, 
-            hidden_dim=config.proj_hidden_dim, 
-            output_dim=config.prediction_dim
+            hidden_dim=config.projection_hidden_dim, 
+            output_dim=config.output_dim
         )
         self.prediction_head = SimSiamPredictionHead(
-            input_dim=config.prediction_dim, 
-            hidden_dim=config.pred_hidden_dim, 
-            output_dim=config.prediction_dim
+            input_dim=config.output_dim, 
+            hidden_dim=config.prediction_hidden_dim, 
+            output_dim=config.output_dim
         )
 
         self.criterion = loss.NegativeCosineSimilarity()
