@@ -36,7 +36,7 @@ optimizer:
   classifier_learning_rate: 0.1
   weight_decay: 1.0e-6
 
-num_workers: 4
+num_workers: 1
 set_float32_matmul_precision: "high"
 
 # overwrite Pytorch Lightening default
@@ -46,3 +46,6 @@ sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
 precision: 16-mixed
+
+# Hard defaults
+reference_batch_size: 256

@@ -9,10 +9,9 @@ num_tasks: 1
 seeds: [5]
 
 feature_dim: 512
-proj_hidden_dim: 2048
+projection_hidden_dim: 2048
 output_dim: 2048
-prediction_dim: 2048
-pred_hidden_dim: 512
+prediction_hidden_dim: 512
 
 temperature: 0.2
 
