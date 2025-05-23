@@ -17,6 +17,7 @@ start_queue_at_epoch: 50
 freeze_prototypes_epochs: 2
 temperature: 0.1
 crop_sizes: [32, 16]
+crop_counts: [2, 6]
 
 trust_coefficient: 0.02
 clip_lr: True

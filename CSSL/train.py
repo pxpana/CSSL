@@ -22,11 +22,11 @@ def main(args):
         backbone.fc = torch.nn.Identity()
         backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
         backbone.maxpool = torch.nn.Identity()
-        model, pretrain_transform = get_model(backbone, args), get_pretrain_transform(args)
+        model = get_model(backbone, args)
+        pretrain_transform = get_pretrain_transform(args)
         logger = LOGGER()
 
         data_manager = DataManager(
-            train_pretrain_transform=pretrain_transform,
             args=args,
         )
 
@@ -36,7 +36,13 @@ def main(args):
             print("TASK ID", task_id)
             train_classifier_taskset = train_classifier_scenario[:task_id+1]
             test_classifier_taskset = test_classifier_scenario[:task_id+1]
-            train_pretrain_loader, train_classifier_loader, test_classifier_loader = data_manager.get_dataloader(train_pretrain_taskset, train_classifier_taskset, test_classifier_taskset, args)
+            train_pretrain_loader, train_classifier_loader, test_classifier_loader = data_manager.get_dataloader(
+                train_pretrain_taskset, 
+                train_classifier_taskset, 
+                test_classifier_taskset, 
+                pretrain_transform,
+                args
+            )
 
             pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(args, training_type="pretrain", task_id=task_id, scenario_id=scenario_id)
             _, classifier_wandb_logger = get_callbacks_logger(args, training_type="classifier", task_id=task_id, scenario_id=scenario_id)
@@ -97,7 +103,15 @@ if __name__ == "__main__":
     config_name = args.config.lower()
     with open(f"config/{config_name}.yaml", 'r') as file:
         config = yaml.safe_load(file)
-    parser.set_defaults(**config)            # Set argparse defaults from YAML
-    args = parser.parse_args(remaining_args) # Re-parse args with YAML defaults
-
+    
+    # Add all config parameters as optional arguments
+    for key, value in config.items():
+        if isinstance(value, bool):
+            parser.add_argument(f"--{key}", type=bool, default=value)
+        else:
+            parser.add_argument(f"--{key}", type=type(value), default=value)
+    
+    # Parse again with full argument list
+    args = parser.parse_args(remaining_args)
+    
     main(args)
