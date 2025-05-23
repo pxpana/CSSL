@@ -23,8 +23,8 @@ class BarlowTwins(BaseSSL):
 
         self.projection_head = BarlowTwinsProjectionHead(
             input_dim=config.feature_dim, 
-            hidden_dim=config.hidden_dim, 
-            output_dim=config.output_dim
+            hidden_dim=config.projection_hidden_dim, 
+            output_dim=config.projection_output_dim
         )
 
         self.criterion = BarlowTwinsLoss(
@@ -33,8 +33,7 @@ class BarlowTwins(BaseSSL):
         )
 
     def training_step(self, batch, batch_index):
-        images, _, _ = batch
-        view0, view1 = images[:, 0], images[:, 1]
+        view0, view1 = batch
 
         output0 = self.forward(view0)
         output1 = self.forward(view1)

@@ -58,8 +58,7 @@ class BYOL(BaseSSL):
         return z
     
     def training_step(self, batch, batch_idx):
-        images, _, _ = batch
-        x0, x1 = images[:, 0], images[:, 1]
+        x0, x1 = batch
 
         momentum = cosine_schedule(
             step=self.trainer.global_step,

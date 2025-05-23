@@ -14,6 +14,7 @@ from lightly.models.utils import (
 )
 
 from lightly.utils.debug import std_of_l2_normalized
+from lightly.utils.scheduler import cosine_schedule
 from models.base_ssl import BaseSSL
 
 class MoCov2Plus(BaseSSL):
@@ -39,6 +40,9 @@ class MoCov2Plus(BaseSSL):
             gather_distributed=True,
         )
 
+        self.start_value = config.momentum_encoder["base_tau"]
+        self.end_value = config.momentum_encoder["final_tau"]
+
     @torch.no_grad()
     def forward_key_encoder(self, x):
         x, shuffle = batch_shuffle(batch=x, distributed=self.trainer.num_devices > 1)
@@ -57,20 +61,25 @@ class MoCov2Plus(BaseSSL):
         return projections
 
     def training_step(self, batch, batch_idx):
-        images, _, _ = batch
-        view0, view1 = images[:, 0], images[:, 1]
+        view0, view1 = batch
 
         # Encode queries.
         outputs = self.forward(view0)
-        query_features_0, query_projections0 = outputs["features"], outputs["projection"]
+        query_features0, query_projections0 = outputs["features"], outputs["projection"]
         outputs = self.forward(view1)
         _, query_projections1 = outputs["features"], outputs["projection"]
 
         # Momentum update. This happens between query and key encoding, following the
         # original implementation from the authors:
         # https://github.com/facebookresearch/moco/blob/5a429c00bb6d4efdf511bf31b6f01e064bf929ab/moco/builder.py#L142
-        update_momentum(self.backbone, self.key_backbone, m=0.999)
-        update_momentum(self.projection_head, self.key_projection_head, m=0.999)
+        momentum = cosine_schedule(
+            step=self.trainer.global_step,
+            max_steps=self.trainer.estimated_stepping_batches,
+            start_value=self.start_value,
+            end_value=self.end_value,
+        )
+        update_momentum(self.backbone, self.key_backbone, m=momentum)
+        update_momentum(self.projection_head, self.key_projection_head, m=momentum)
 
         key_projections0 = self.forward_key_encoder(view0)
         key_projections1 = self.forward_key_encoder(view1)
@@ -79,7 +88,7 @@ class MoCov2Plus(BaseSSL):
             + self.criterion1(query_projections1, key_projections0)
             ) / 2
         
-        representation_std = std_of_l2_normalized(query_features_0)
+        representation_std = std_of_l2_normalized(query_features0)
         
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)

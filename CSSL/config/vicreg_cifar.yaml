@@ -4,7 +4,7 @@ dataset: "cifar100"
 image_dim: 32
 
 num_classes: 100
-num_tasks: 5
+num_tasks: 1
 seeds: [5]
 
 feature_dim: 512
@@ -15,7 +15,7 @@ projection_layers: 2
 sim_loss_weight: 25.0
 var_loss_weight: 25.0
 cov_loss_weight: 1.0
-epsilon: 0.001
+epsilon: 0.2
 
 trust_coefficient: 0.02
 clip_lr: True
@@ -25,7 +25,7 @@ gather_distributed: False
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
-train_epochs: 1000
+train_epochs: 500
 
 test_batch_size: 256
 test_accumulate_grad_batches: 1

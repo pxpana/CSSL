@@ -24,8 +24,7 @@ class VICReg(BaseSSL):
         )
     
     def training_step(self, batch, batch_index):
-        images, _, _ = batch
-        view0, view1 = images[:, 0], images[:, 1]
+        view0, view1 = batch
 
         outputs = self.forward(view0)
         feats0, z0 = outputs["features"], outputs["projection"]

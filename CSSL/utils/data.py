@@ -8,6 +8,8 @@ from utils.toolkit import split_images_labels
 from torchvision.datasets import ImageFolder
 from typing import Callable, Optional, Tuple, Union
 
+from dataset import PretrainDataset
+
 from continuum.datasets import CIFAR100
 from continuum import ClassIncremental
 from continuum.generators import ClassOrderGenerator
@@ -44,7 +46,7 @@ class iCIFAR100(iData):
         self.test_data, self.test_targets = split_images_labels(test_dataset.imgs)
 
 class DataManager():
-    def __init__(self, train_pretrain_transform, args, root="data"):
+    def __init__(self, args, root="data"):
 
         self.num_tasks = args.num_tasks
 
@@ -55,7 +57,7 @@ class DataManager():
         train_pretrain_scenario = ClassIncremental(
             train_dataset,
             nb_tasks=self.num_tasks,
-            transformations=[train_pretrain_transform]
+            transformations=[None]
         )
 
         train_classifier_scenario = ClassIncremental(
@@ -82,8 +84,27 @@ class DataManager():
 
         return train_pretrain_scenario, train_classifier_scenario, test_classifier_scenario
     
-    def get_dataloader(self, train_pretrain_taskset, train_classifier_taskset, test_classifier_taskset, args):
-        train_pretrain_loader = DataLoader(train_pretrain_taskset, batch_size=args.train_batch_size, num_workers=args.num_workers, shuffle=True)
+    def get_dataloader(
+            self, 
+            train_pretrain_taskset, 
+            train_classifier_taskset, 
+            test_classifier_taskset, 
+            pretrain_transform,
+            args
+        ):
+
+        pretrain_dataset = PretrainDataset(
+            data=train_pretrain_taskset._x,
+            transform=pretrain_transform,
+        )
+
+        train_pretrain_loader = DataLoader(
+            pretrain_dataset, 
+            batch_size=args.train_batch_size, 
+            num_workers=args.num_workers, 
+            shuffle=True
+        )
+
         train_classifier_loader = DataLoader(train_classifier_taskset, batch_size=args.test_batch_size, num_workers=args.num_workers, shuffle=True)
         test_classifier_loader = DataLoader(test_classifier_taskset, batch_size=args.test_batch_size, num_workers=args.num_workers, shuffle=False)
 

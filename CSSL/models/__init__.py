@@ -1,5 +1,4 @@
 from models.simclr import SimCLR
-from models.mocov2 import MoCov2
 from models.mocov2plus import MoCov2Plus
 from models.byol import BYOL
 from models.barlow_twins import BarlowTwins

@@ -46,10 +46,10 @@ def get_classifier(backbone, num_classes, logger, args):
 
 def get_pretrain_transform(args):
     name = args.model_name.lower()
+    pretrain_collate_function=None
     if name == "simclr":
         from lightly.transforms import SimCLRTransform
-        pretrain_transform = SimCLRTransform(input_size=args.image_dim)
-        transform = lambda x: torch.stack(pretrain_transform(x))
+        transform = SimCLRTransform(input_size=args.image_dim)
     elif name == "mocov2":
         from lightly.transforms import MoCoV2Transform
         pretrain_transform = MoCoV2Transform(input_size=args.image_dim)
@@ -60,38 +60,21 @@ def get_pretrain_transform(args):
         transform = lambda x: torch.stack(pretrain_transform(x))
     elif name in ["byol", "barlowtwins"]:
         from lightly.transforms import BYOLTransform
-        pretrain_transform = BYOLTransform(
+        transform = BYOLTransform(
             lightly.transforms.BYOLView1Transform(input_size=args.image_dim),
             lightly.transforms.BYOLView2Transform(input_size=args.image_dim)
             )
-        transform = lambda x: torch.stack(pretrain_transform(x))
     elif name == "simsiam":
         from lightly.transforms import SimSiamTransform
         pretrain_transform = SimSiamTransform(input_size=args.image_dim)
         transform = lambda x: torch.stack(pretrain_transform(x))
     elif name == "vicreg":
         from lightly.transforms import VICRegTransform
-        pretrain_transform = VICRegTransform(input_size=args.image_dim)
-        transform = lambda x: torch.stack(pretrain_transform(x))
+        transform = VICRegTransform(input_size=args.image_dim)
     elif name == "swav":
         from lightly.transforms import SwaVTransform
-        pretrain_transform = SwaVTransform(crop_sizes=args.crop_sizes)
-        def transform(x):
-            transformed = pretrain_transform(x)
-            num_crops = len(transformed)
-            global_crops, mini_crops = [], []
-            for i in range(num_crops):
-                if transformed[0].shape[-1]==max(args.crop_sizes):
-                    global_crops.append(transformed.pop(0))
-                elif transformed[0].shape[-1]==min(args.crop_sizes):
-                    mini_crops.append(transformed.pop(0))
+        transform = SwaVTransform(crop_sizes=args.crop_sizes)
 
-            global_crops = torch.stack(global_crops)
-            mini_crops = torch.stack(mini_crops)
-            
-            return [global_crops, mini_crops]
-
-        #transform = lambda x: torch.stack(pretrain_transform(x))
     else:
         assert 0
     return transform
@@ -130,3 +113,43 @@ def get_checkpoint(trainer, backbone, args):
     )
 
     return model
+
+def multicrop_collate_function(batch):
+        """
+        Args:
+            batch: list of tuples (image, label) from dataset
+        Returns:
+            (global_crops, local_crops), labels
+            where global_crops: (B,Ng,C,H,W)
+                  local_crops: (B,Nl,C,H,W)
+        """
+        images, labels = zip(*batch)
+        
+        # Convert all images to crops
+        all_global, all_local = [], []
+        for img in images:
+            global_crops, local_crops = multicrop_transform(img, pretrain_transform, args)
+            all_global.append(global_crops)
+            all_local.append(local_crops)
+        
+        # Stack results
+        global_crops_batch = torch.stack(all_global)  # (B,Ng,C,H,W)
+        local_crops_batch = torch.stack(all_local)     # (B,Nl,C,H,W)
+        labels = torch.stack(labels)
+        
+        return (global_crops_batch, local_crops_batch), labels
+
+def multicrop_transform(x, pretrain_transform, args):
+        transformed = pretrain_transform(x)
+        num_crops = len(transformed)
+        global_crops, local_crops = [], []
+        for i in range(num_crops):
+            if transformed[0].shape[-1]==max(args.crop_sizes):
+                global_crops.append(transformed.pop(0))
+            elif transformed[0].shape[-1]==min(args.crop_sizes):
+                local_crops.append(transformed.pop(0))
+
+        global_crops = torch.stack(global_crops)
+        local_crops = torch.stack(local_crops)
+        
+        return (global_crops, local_crops)
