@@ -50,14 +50,9 @@ def get_pretrain_transform(args):
     if name == "simclr":
         from lightly.transforms import SimCLRTransform
         transform = SimCLRTransform(input_size=args.image_dim)
-    elif name == "mocov2":
-        from lightly.transforms import MoCoV2Transform
-        pretrain_transform = MoCoV2Transform(input_size=args.image_dim)
-        transform = lambda x: torch.stack(pretrain_transform(x))
     elif name == "mocov2plus":
         from lightly.transforms import MoCoV2Transform
-        pretrain_transform = MoCoV2Transform(input_size=args.image_dim, gaussian_blur=0.5)
-        transform = lambda x: torch.stack(pretrain_transform(x))
+        transform = MoCoV2Transform(input_size=args.image_dim, gaussian_blur=0.5)
     elif name in ["byol", "barlowtwins"]:
         from lightly.transforms import BYOLTransform
         transform = BYOLTransform(
@@ -66,8 +61,7 @@ def get_pretrain_transform(args):
             )
     elif name == "simsiam":
         from lightly.transforms import SimSiamTransform
-        pretrain_transform = SimSiamTransform(input_size=args.image_dim)
-        transform = lambda x: torch.stack(pretrain_transform(x))
+        transform = SimSiamTransform(input_size=args.image_dim)
     elif name == "vicreg":
         from lightly.transforms import VICRegTransform
         transform = VICRegTransform(input_size=args.image_dim)

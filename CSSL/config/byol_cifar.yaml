@@ -19,7 +19,7 @@ momentum_encoder:
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
-train_epochs: 1000
+train_epochs: 500
 
 trust_coefficient: 0.02
 clip_lr: True

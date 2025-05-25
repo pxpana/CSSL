@@ -66,7 +66,7 @@ def main(args):
             trainer.fit(model, train_pretrain_loader)
 
             # load the best model
-            model = get_checkpoint(trainer, backbone, args)
+            #model = get_checkpoint(trainer, backbone, args)
 
             '''
             Evaluate the model
@@ -90,7 +90,7 @@ def main(args):
             )
             trainer.fit(classifier, train_classifier_loader, test_classifier_loader)
 
-            wandb.finish()
+            #wandb.finish()
 
 
 

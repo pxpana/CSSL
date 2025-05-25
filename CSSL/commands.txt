@@ -1,0 +1,2 @@
+# SimCLR on CIFAR 5 tasks
+python3 train.py --num_tasks 5

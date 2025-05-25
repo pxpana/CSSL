@@ -53,9 +53,10 @@ class SwAV(BaseSSL):
 
         # Forward pass through backbone and projection head.
         multi_crop_features, multi_crop_projections = [], []
-        for crops in multi_crops:
-            outputs = self.forward(crops)
+        for crop in multi_crops:
+            outputs = self.forward(crop)
             multi_crop_features.append(outputs["features"])
+            outputs["projection"] = F.normalize(outputs["projection"])
             multi_crop_projections.append(outputs["projection"])
 
         # Get the queue projections and logits.
