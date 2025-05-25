@@ -43,8 +43,7 @@ class SimSiam(BaseSSL):
         return output
     
     def training_step(self, batch, batch_idx):
-        images, _, _ = batch
-        x0, x1 = images[:, 0], images[:, 1]
+        x0, x1 = batch
 
         output = self.forward(x0)
         feats0, z0, p0 = output["features"], output["projection"], output["prediction"]

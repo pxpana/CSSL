@@ -11,7 +11,10 @@ feature_dim: 512
 hidden_dim: 2048
 output_dim: 256
 
-queue_size: 32768
+trust_coefficient: 0.02
+clip_lr: True
+
+queue_size: 65536
 temperature: 0.2
 
 momentum_encoder:
@@ -21,15 +24,15 @@ momentum_encoder:
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
-train_epochs: 1000
+train_epochs: 500
 
 test_batch_size: 256
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
 optimizer:
-  name: "sgd"
-  train_learning_rate: 0.3
+  name: "lars"
+  train_learning_rate: 0.4
   classifier_learning_rate: 0.3
   weight_decay: 1.0e-4
 

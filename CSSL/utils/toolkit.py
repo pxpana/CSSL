@@ -124,10 +124,10 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id):
 
     callbacks = []
     checkpoint_callback = ModelCheckpoint(
-                            monitor=monitor,
+                            #monitor=monitor,
                             filename=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}",           
-                            mode=mode,                    
-                            save_last=True,                 
+                            #mode=mode,                    
+                            #save_last=True,                 
                             verbose=True                  
                         )
     callbacks.append(checkpoint_callback)

@@ -11,103 +11,67 @@ from avalanche.training.plugins.strategy_plugin import SupervisedPlugin
 from avalanche.training.utils import copy_params_dict, zerolike_params_dict, ParamData
 
 
-
-
 class EWC:
     def __init__(
         self,
-        ewc_lambda,
-        mode="separate",
-        decay_factor=None,
-        keep_importance_data=False,
+        task_id,
+        config
     ):
         super().__init__()
-        assert (decay_factor is None) or (
-            mode == "online"
-        ), "You need to set `online` mode to use `decay_factor`."
-        assert (decay_factor is not None) or (
-            mode != "online"
-        ), "You need to set `decay_factor` to use the `online` mode."
-        assert (
-            mode == "separate" or mode == "online"
-        ), "Mode must be separate or online."
 
-        self.ewc_lambda = ewc_lambda
-        self.mode = mode
-        self.decay_factor = decay_factor
+        self.ewc_lambda = config.ewc_lambda
+        self.decay_factor = config.ewc_decay_factor
+        self.num_workers = config.num_workers
+        self.task_id = task_id
 
-        if self.mode == "separate":
-            self.keep_importance_data = True
-        else:
-            self.keep_importance_data = keep_importance_data
 
         self.saved_params: Dict[int, Dict[str, ParamData]] = defaultdict(dict)
         self.importances: Dict[int, Dict[str, ParamData]] = defaultdict(dict)
 
-    def before_backward(self, strategy, **kwargs):
+    def on_before_backward(self, trainer, pl_module, loss):
         """
         Compute EWC penalty and add it to the loss.
         """
-        exp_counter = strategy.clock.train_exp_counter
-        if exp_counter == 0:
+        if self.task_id == 0:
             return
 
-        penalty = torch.tensor(0).float().to(strategy.device)
+        penalty = torch.tensor(0).float().to(self.device)
 
-        if self.mode == "separate":
-            for experience in range(exp_counter):
-                for k, cur_param in strategy.model.named_parameters():
-                    # new parameters do not count
-                    if k not in self.saved_params[experience]:
-                        continue
-                    saved_param = self.saved_params[experience][k]
-                    imp = self.importances[experience][k]
-                    new_shape = cur_param.shape
-                    penalty += (
-                        imp.expand(new_shape)
-                        * (cur_param - saved_param.expand(new_shape)).pow(2)
-                    ).sum()
-        elif self.mode == "online":  # may need importance and param expansion
-            prev_exp = exp_counter - 1
-            for k, cur_param in strategy.model.named_parameters():
+        for experience in range(self.task_id):
+            for k, cur_param in self.backbone.named_parameters():
                 # new parameters do not count
-                if k not in self.saved_params[prev_exp]:
+                if k not in self.saved_params[experience]:
                     continue
-                saved_param = self.saved_params[prev_exp][k]
-                imp = self.importances[prev_exp][k]
+                saved_param = self.saved_params[experience][k]
+                imp = self.importances[experience][k]
                 new_shape = cur_param.shape
                 penalty += (
                     imp.expand(new_shape)
                     * (cur_param - saved_param.expand(new_shape)).pow(2)
                 ).sum()
-        else:
-            raise ValueError("Wrong EWC mode.")
 
-        strategy.loss += self.ewc_lambda * penalty
+        loss += self.ewc_lambda * penalty
 
-    def after_training_exp(self, strategy, **kwargs):
+    def on_train_end(self, trainer, pl_module):
         """
         Compute importances of parameters after each experience.
         """
-        exp_counter = strategy.clock.train_exp_counter
         importances = self.compute_importances(
-            strategy.model,
-            strategy._criterion,
-            strategy.optimizer,
+            self.backbone,
+            self._criterion,
+            self.optimizer,
             strategy.experience.dataset,
-            strategy.device,
+            self.device,
             strategy.train_mb_size,
-            num_workers=kwargs.get("num_workers", 0),
+            num_workers=self.num_workers),
         )
-        self.update_importances(importances, exp_counter)
-        self.saved_params[exp_counter] = copy_params_dict(strategy.model)
+        self.update_importances(importances, self.task_id)
+        self.saved_params[self.task_id] = copy_params_dict(self.backbone)
         # clear previous parameter values
-        if exp_counter > 0 and (not self.keep_importance_data):
-            del self.saved_params[exp_counter - 1]
+        del self.saved_params[self.task_id - 1]
 
     def compute_importances(
-        self, model, criterion, optimizer, dataset, device, batch_size, num_workers=0
-    ) -> Dict[str, ParamData]:
+        self, model, criterion, optimizer, dataloader) -> Dict[str, ParamData]:
         """
         Compute EWC importance matrix for each parameter
         """
@@ -129,13 +93,6 @@ class EWC:
 
         # list of list
         importances = zerolike_params_dict(model)
-        collate_fn = dataset.collate_fn if hasattr(dataset, "collate_fn") else None
-        dataloader = DataLoader(
-            dataset,
-            batch_size=batch_size,
-            collate_fn=collate_fn,
-            num_workers=num_workers,
-        )
         for i, batch in enumerate(dataloader):
             # get only input, target and task_id from the batch
             x, y, task_labels = batch[0], batch[1], batch[-1]

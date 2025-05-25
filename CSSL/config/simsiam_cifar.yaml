@@ -15,17 +15,20 @@ prediction_hidden_dim: 512
 
 temperature: 0.2
 
+trust_coefficient: 0.02
+clip_lr: True
+
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
-train_epochs: 1000
+train_epochs: 500
 
 test_batch_size: 256
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
 optimizer:
-  name: "sgd"
+  name: "lars"
   train_learning_rate: 0.5
   classifier_learning_rate: 0.1
   weight_decay: 1.0e-5
