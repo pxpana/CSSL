@@ -7,7 +7,8 @@ import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from torchvision.models import resnet18
 from utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger, get_checkpoint
-from continuum.metrics.logger import Logger as LOGGER
+#from continuum.metrics.logger import Logger as LOGGER
+from metrics.logger import Logger as LOGGER
 
 def main(args):
     seeds = args.seeds
@@ -23,6 +24,7 @@ def main(args):
         backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
         backbone.maxpool = torch.nn.Identity()
         model = get_model(backbone, args)
+
         pretrain_transform = get_pretrain_transform(args)
         logger = LOGGER()
 
@@ -47,7 +49,8 @@ def main(args):
             pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(args, training_type="pretrain", task_id=task_id, scenario_id=scenario_id)
             _, classifier_wandb_logger = get_callbacks_logger(args, training_type="classifier", task_id=task_id, scenario_id=scenario_id)
 
-            model = get_model(model.backbone, args)
+            if task_id>0:
+                model = get_model(model.backbone, args)
 
             '''
             Train the model
@@ -64,9 +67,6 @@ def main(args):
                 sync_batchnorm=args.sync_batchnorm,
             )
             trainer.fit(model, train_pretrain_loader)
-
-            # load the best model
-            #model = get_checkpoint(trainer, backbone, args)
 
             '''
             Evaluate the model
@@ -90,7 +90,7 @@ def main(args):
             )
             trainer.fit(classifier, train_classifier_loader, test_classifier_loader)
 
-            #wandb.finish()
+            wandb.finish()
 
 
 

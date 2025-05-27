@@ -64,10 +64,8 @@ class MoCov2Plus(BaseSSL):
         view0, view1 = batch
 
         # Encode queries.
-        outputs = self.forward(view0)
-        query_features0, query_projections0 = outputs["features"], outputs["projection"]
-        outputs = self.forward(view1)
-        _, query_projections1 = outputs["features"], outputs["projection"]
+        query_projections0 = self.forward(view0)["projection"]
+        query_projections1 = self.forward(view1)["projection"]
 
         # Momentum update. This happens between query and key encoding, following the
         # original implementation from the authors:
@@ -88,7 +86,7 @@ class MoCov2Plus(BaseSSL):
             + self.criterion1(query_projections1, key_projections0)
             ) / 2
         
-        representation_std = std_of_l2_normalized(query_features0)
+        representation_std = std_of_l2_normalized((query_projections0 + query_projections1) / 2)
         
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)

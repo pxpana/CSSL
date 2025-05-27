@@ -46,7 +46,7 @@ class SimSiam(BaseSSL):
         x0, x1 = batch
 
         output = self.forward(x0)
-        feats0, z0, p0 = output["features"], output["projection"], output["prediction"]
+        _, z0, p0 = output["features"], output["projection"], output["prediction"]
         output = self.forward(x1)
         _, z1, p1 = output["features"], output["projection"], output["prediction"]
         
@@ -54,7 +54,7 @@ class SimSiam(BaseSSL):
             self.criterion(z0, p1) + self.criterion(z1, p0)
         ) / 2
 
-        representation_std = std_of_l2_normalized(feats0)
+        representation_std = std_of_l2_normalized((z0 + z1) / 2)
 
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)

@@ -15,6 +15,7 @@ queue_size: 3840
 num_prototypes: 3000
 start_queue_at_epoch: 50
 freeze_prototypes_epochs: 2
+n_batches_in_queue: 15
 temperature: 0.1
 crop_sizes: [32, 16]
 crop_counts: [2, 6]

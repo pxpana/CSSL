@@ -58,7 +58,7 @@ class BYOL(BaseSSL):
         return z
     
     def training_step(self, batch, batch_idx):
-        x0, x1 = batch
+        x0, x1 = batch[0], batch[1]
 
         momentum = cosine_schedule(
             step=self.trainer.global_step,
@@ -84,7 +84,7 @@ class BYOL(BaseSSL):
         # NOTE: No mean because original code only takes mean over batch dimension, not views.
         loss = loss_0 + loss_1
 
-        representation_std = std_of_l2_normalized(x0_output["features"])
+        representation_std = std_of_l2_normalized((x0_output["projection"] + x1_output["projection"]) / 2)
 
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)
