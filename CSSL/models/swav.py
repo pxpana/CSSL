@@ -33,6 +33,7 @@ class SwAV(BaseSSL):
         # Use a queue for small batch sizes (<= 256).
         self.start_queue_at_epoch = config.start_queue_at_epoch
         self.queue_size = config.queue_size
+        self.n_batches_in_queue = 15
         self.queues = torch.nn.ModuleList(
             [
                 MemoryBankModule(
@@ -88,7 +89,7 @@ class SwAV(BaseSSL):
             queue_outputs=queue_crop_logits,
         )
 
-        representation_std = std_of_l2_normalized(multi_crop_features[0])
+        representation_std = std_of_l2_normalized((multi_crop_projections[0] + multi_crop_projections[1]) / 2)
 
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)

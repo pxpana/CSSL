@@ -10,7 +10,10 @@ class SimCLR(BaseSSL):
         super().__init__(backbone, config)
 
         self.projection_head = SimCLRProjectionHead(
-            input_dim=512, hidden_dim=config.hidden_dim, output_dim=config.output_dim
+            input_dim=config.feature_dim, 
+            hidden_dim=config.hidden_dim, 
+            output_dim=config.output_dim,
+            num_layers=config.num_layers,
         )
         self.criterion = loss.NTXentLoss(
             temperature=config.temperature,
@@ -20,12 +23,11 @@ class SimCLR(BaseSSL):
     def training_step(self, batch, batch_index):
         view0, view1 = batch
 
-        outputs = self.forward(view0)
-        feats0, z0 = outputs["features"], outputs["projection"]
+        z0 = self.forward(view0)["projection"]
         z1 = self.forward(view1)["projection"]
         
         loss = self.criterion(z0, z1)
-        representation_std = std_of_l2_normalized(feats0)
+        representation_std = std_of_l2_normalized((z0 + z1) / 2)
 
         self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
         self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)

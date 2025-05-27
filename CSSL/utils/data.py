@@ -10,49 +10,18 @@ from typing import Callable, Optional, Tuple, Union
 
 from dataset import PretrainDataset
 
-from continuum.datasets import CIFAR100
+from continuum.datasets import CIFAR100, MNIST
 from continuum import ClassIncremental
 from continuum.generators import ClassOrderGenerator
 
-
-class iData(object):
-    train_trsf = []
-    test_trsf = []
-    common_trsf = []
-    class_order = None
-
-
-class iCIFAR100(iData):
-    use_path = True
-    train_trsf = [
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ColorJitter(brightness=63 / 255),
-    ]
-    test_trsf = []
-    common_trsf = [
-        transforms.Compose([transforms.ToImage(), transforms.ToDtype(torch.float32, scale=True)]),
-        transforms.Normalize(
-            mean=(0.5071, 0.4867, 0.4408), std=(0.2675, 0.2565, 0.2761)
-        ),
-    ]
-
-    class_order = np.arange(100).tolist()
-
-    def download_data(self):
-        train_dataset = ImageFolder(f"data/CIFAR100/train")
-        test_dataset = ImageFolder(f"data/CIFAR100/test")
-        self.train_data, self.train_targets = split_images_labels(train_dataset.imgs)
-        self.test_data, self.test_targets = split_images_labels(test_dataset.imgs)
 
 class DataManager():
     def __init__(self, args, root="data"):
 
         self.num_tasks = args.num_tasks
 
-        train_dataset = CIFAR100(root, download=True, train=True)
-        self.test_dataset = CIFAR100(root, download=True, train=False)
-        train_classifier_transform, test_classifier_transform = prepare_transforms("cifar100")
+        train_dataset, self.test_dataset = get_dataset(dataset=args.dataset, root=root)
+        train_classifier_transform, test_classifier_transform = prepare_transforms(dataset=args.dataset)
 
         train_pretrain_scenario = ClassIncremental(
             train_dataset,
@@ -95,7 +64,7 @@ class DataManager():
 
         pretrain_dataset = PretrainDataset(
             data=train_pretrain_taskset._x,
-            transform=pretrain_transform,
+            transform=pretrain_transform
         )
 
         train_pretrain_loader = DataLoader(
@@ -112,7 +81,15 @@ class DataManager():
 
 
         
+def get_dataset(dataset, root):
+    if dataset == "cifar100":
+        train_dataset = CIFAR100(root, download=True, train=True)
+        test_dataset = CIFAR100(root, download=True, train=False)
+    elif dataset == "mnist":
+        train_dataset = MNIST(root, download=True, train=True)
+        test_dataset = MNIST(root, download=True, train=False)
 
+    return train_dataset, test_dataset
 
 def prepare_transforms(dataset: str) -> Tuple[nn.Module, nn.Module]:
     """
@@ -183,6 +160,28 @@ def prepare_transforms(dataset: str) -> Tuple[nn.Module, nn.Module]:
         ),
     }
 
+    mnist_pipeline = {
+        "T_train": transforms.Compose(
+            [
+                transforms.RandomResizedCrop(size=28, scale=(0.08, 1.0)),
+                transforms.RandomHorizontalFlip(),
+                transforms.Grayscale(num_output_channels=1),
+                transforms.ToImage(),  # Only in TorchVision >= 0.15
+                transforms.ToDtype(torch.float32, scale=True),  # Scale to [0,1]
+                transforms.Normalize((0.1307,), (0.3081,)),
+            ]
+        ),
+        "T_val": transforms.Compose(
+            [
+                transforms.Resize((28, 28)),
+                transforms.Grayscale(num_output_channels=1),
+                transforms.ToImage(),  # Only in TorchVision >= 0.15
+                transforms.ToDtype(torch.float32, scale=True),  # Scale to [0,1]
+                transforms.Normalize((0.1307,), (0.3081,)),
+            ]
+        ),
+    }
+
     #custom_pipeline = build_custom_pipeline()
 
     pipelines = {
@@ -192,6 +191,7 @@ def prepare_transforms(dataset: str) -> Tuple[nn.Module, nn.Module]:
         "imagenet100": imagenet_pipeline,
         "imagenet": imagenet_pipeline,
         "domainnet": imagenet_pipeline,
+        "mnist": mnist_pipeline,
         #"custom": custom_pipeline,
     }
 

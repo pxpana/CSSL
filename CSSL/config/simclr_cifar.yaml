@@ -5,13 +5,14 @@ dataset: "cifar100"
 image_dim: 32
 
 num_classes: 100
-num_tasks: 1
+num_tasks: 5
 class_increment: 100
 seeds: [5]
 
 feature_dim: 512
 hidden_dim: 2048
 output_dim: 256
+num_layers: 2
 trust_coefficient: 0.02
 clip_lr: True
 
