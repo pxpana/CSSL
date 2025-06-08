@@ -142,3 +142,28 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id):
     )
 
     return callbacks, wandb_logger
+
+def get_random_accuracy(args, num_trials=5):
+    accs = 0
+
+    if args.mode == 'wotl':
+        train_loader, test_loader = get_knn_data_loaders(args, task_label=False)
+        class_to_idx = train_loader.dataset.class_to_idx
+        class_order = pickle.load(open(args.order_fp, 'rb'))
+        class_order = [class_to_idx[c] for c in class_order]
+        
+        for i in range(num_trials):
+            accs += np.array(knn_test(args, load_ckpt(args), train_loader, test_loader, num_tasks=args.num_tasks, class_order=class_order))
+    
+    else:
+        train_loaders, test_loaders = get_knn_data_loaders(args, task_label=True)
+
+        for i in range(num_trials):
+            task_accs = []
+            model = load_ckpt(args)
+            for train_loader, test_loader in zip(train_loaders, test_loaders):
+                acc = knn_test_wtl(args, model, train_loader, test_loader)
+                task_accs.append(acc)
+            accs += np.array(task_accs)
+
+    return accs / num_trials

@@ -5,6 +5,8 @@ class Logger():
     def __init__(self):
         self.logs = []
 
+        self.task_id = None
+
         self.accuracy = TaskAwareAccuracy()
         self.forgetting = Forgetting()
 
@@ -17,6 +19,10 @@ class Logger():
 
     def results(self):
         accuracy = self.accuracy.result()
+
+        self.forgetting.update(self.task_id, accuracy[self.task_id])
+        
+
         accuracy = np.mean(list(accuracy.values()))
 
         return {

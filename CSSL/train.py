@@ -1,3 +1,4 @@
+import os
 import argparse
 import yaml
 import torch
@@ -7,8 +8,8 @@ import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from torchvision.models import resnet18
 from utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger, get_checkpoint
-#from continuum.metrics.logger import Logger as LOGGER
-from metrics.logger import Logger as LOGGER
+from continuum.metrics.logger import Logger as LOGGER
+#from metrics.logger import Logger as LOGGER
 
 def main(args):
     seeds = args.seeds
@@ -26,7 +27,10 @@ def main(args):
         model = get_model(backbone, args)
 
         pretrain_transform = get_pretrain_transform(args)
-        logger = LOGGER()
+
+        logger = LOGGER(
+            list_keywords=["performance"]
+        )
 
         data_manager = DataManager(
             args=args,
