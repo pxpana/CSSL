@@ -1,18 +1,17 @@
 # ignore ALL .log files
 
+CSSL/draft.ipynb
 
 # ignore ALL files in ANY directory named temp
-CSSL/.venv/
-CSSL/data/
+.venv/
+data/
+wandb/
+CSSL/
+logs/
+
 CSSL/lightning_logs/
-CSSL/wandb/
-CSSL/CSSL/
-CSSL/logs/
 __pycache__/
 */__pycache__/
 */*/__pycache__/
 CSSL/*/__pycache__/
 
-CSSL/draft.ipynb
-
-v1.ipynb

@@ -1,0 +1,20 @@
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Loading `train_dataloader` to estimate number of stepping batches.
+/home/medici/Documents/Projects/CSSL/.venv/lib/python3.12/site-packages/pytorch_lightning/loops/fit_loop.py:310: The number of training batches (40) is smaller than the logging interval Trainer(log_every_n_steps=50). Set a lower value for log_every_n_steps if you want to see logs for the training epoch.
+
+  | Name                | Type               | Params | Mode
+-------------------------------------------------------------------
+0 | backbone            | ResNet             | 11.2 M | train
+1 | projection_head     | MoCoProjectionHead | 1.6 M  | train
+2 | key_backbone        | ResNet             | 11.2 M | train
+3 | key_projection_head | MoCoProjectionHead | 1.6 M  | train
+4 | criterion0          | NTXentLoss         | 0      | train
+5 | criterion1          | NTXentLoss         | 0      | train
+-------------------------------------------------------------------
+25.5 M    Trainable params
+0         Non-trainable params
+25.5 M    Total params
+101.952   Total estimated model params size (MB)
+152       Modules in train mode
+0         Modules in eval mode
+Epoch 485:  90%|▉| 36/40 [00:03<00:00, 10.98it/s, v_num=tur0, train_loss_step=6.900, representation_std_step=0.0623, train_loss_epoch=6.870, repres
