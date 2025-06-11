@@ -7,7 +7,7 @@ CSSL/data/
 CSSL/lightning_logs/
 CSSL/wandb/
 CSSL/CSSL/
-CSSL/lab
+CSSL/logs/
 __pycache__/
 */__pycache__/
 */*/__pycache__/
