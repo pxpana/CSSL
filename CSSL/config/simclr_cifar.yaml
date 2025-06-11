@@ -17,7 +17,7 @@ clip_lr: True
 momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
-train_epochs: 15
+train_epochs: 500
 
 optimizer:
   name: "lars"
@@ -29,9 +29,9 @@ temperature: 0.2
 
 test_batch_size: 256
 test_accumulate_grad_batches: 1
-test_epochs: 10
+test_epochs: 100
 
-num_workers: 16
+num_workers: 8
 set_float32_matmul_precision: "high"
 
 # overwrite Pytorch Lightening default

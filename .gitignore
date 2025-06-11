@@ -13,4 +13,6 @@ __pycache__/
 */*/__pycache__/
 CSSL/*/__pycache__/
 
+CSSL/draft.ipynb
+
 v1.ipynb

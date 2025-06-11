@@ -53,8 +53,8 @@ class Classifier(LinearClassifier):
     def on_validation_epoch_end(self):
         if not self.trainer.sanity_checking:
             log_dict = {
-                f"Task Accuracy": self.metrics_logger.accuracy_per_task[-1],
-                f"Accuracy": self.metrics_logger.accuracy,
+                f"Accuracy": np.mean(np.array(self.metrics_logger.accuracy_per_task)[:(self.metrics_logger.current_task+1)]),
+                f"Accuracy 1:T": np.mean(np.array(self.metrics_logger.accuracy_per_task)),
                 f"AIC": self.metrics_logger.average_incremental_accuracy,
                 f"BWT": self.metrics_logger.backward_transfer,
                 f"FWT": self.metrics_logger.forward_transfer,

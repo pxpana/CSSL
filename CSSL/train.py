@@ -1,15 +1,18 @@
 import os
 import argparse
 import yaml
+from copy import deepcopy
 import torch
+from torch.utils.data import DataLoader
 import wandb
 from tqdm import tqdm
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from torchvision.models import resnet18
 from utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger, get_checkpoint
-from continuum.metrics.logger import Logger as LOGGER
-#from metrics.logger import Logger as LOGGER
+#from continuum.metrics.logger import Logger as LOGGER
+from metrics.logger import Logger
+from lightly.models.utils import deactivate_requires_grad, activate_requires_grad
 
 def main(args):
     seeds = args.seeds
@@ -28,24 +31,36 @@ def main(args):
 
         pretrain_transform = get_pretrain_transform(args)
 
-        logger = LOGGER(
-            list_keywords=["performance"]
-        )
-
         data_manager = DataManager(
             args=args,
         )
 
         train_pretrain_scenario, train_classifier_scenario, test_classifier_scenario = data_manager.get_scenerio(scenario_id)
 
+
+        if not os.path.exists(f"logs/{args.model_name}_{args.dataset}_{args.num_tasks}"):
+            os.makedirs(f"logs/{args.model_name}_{args.dataset}_{args.num_tasks}")
+        logger = Logger(
+            backbone=deepcopy(backbone),
+            args=args,
+            test_dataloder=DataLoader(
+                test_classifier_scenario[:], 
+                batch_size=args.test_batch_size, 
+                num_workers=args.num_workers, 
+                shuffle=False
+            ),
+            list_keywords=["performance"],
+            root_log=f"logs/{args.model_name}_{args.dataset}_{args.num_tasks}"
+        )
+
         for task_id, train_pretrain_taskset in tqdm(enumerate(train_pretrain_scenario), desc="Training tasks"):
             print("TASK ID", task_id)
-            train_classifier_taskset = train_classifier_scenario[:task_id+1]
-            test_classifier_taskset = test_classifier_scenario[:task_id+1]
+            #train_classifier_taskset = train_classifier_scenario[:task_id+1]
+            #test_classifier_taskset = test_classifier_scenario[:task_id+1]
             train_pretrain_loader, train_classifier_loader, test_classifier_loader = data_manager.get_dataloader(
                 train_pretrain_taskset, 
-                train_classifier_taskset, 
-                test_classifier_taskset, 
+                train_classifier_scenario[:], 
+                test_classifier_scenario[:], 
                 pretrain_transform,
                 args
             )
@@ -55,6 +70,8 @@ def main(args):
 
             if task_id>0:
                 model = get_model(model.backbone, args)
+
+            activate_requires_grad(model.backbone)
 
             '''
             Train the model
@@ -75,9 +92,12 @@ def main(args):
             '''
             Evaluate the model
             '''
+            
+            deactivate_requires_grad(model.backbone)
+
             classifier = get_classifier(
                 model.backbone, 
-                num_classes=class_increment*(task_id+1),
+                num_classes=args.num_classes,
                 logger=logger,
                 args=args
             )

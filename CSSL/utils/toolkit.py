@@ -112,7 +112,7 @@ def save_model(args, model):
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
-def get_callbacks_logger(args, training_type, task_id, scenario_id):
+def get_callbacks_logger(args, training_type, task_id, scenario_id, project="CSSL"):
     task_id = task_id+1
 
     if training_type == "pretrain":
@@ -138,7 +138,7 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id):
         group=f"scenario_{scenario_id}",
         config={"task_id": task_id, "scenario_id": scenario_id},
         log_model=False, 
-        project="CSSL"
+        project=project
     )
 
     return callbacks, wandb_logger
