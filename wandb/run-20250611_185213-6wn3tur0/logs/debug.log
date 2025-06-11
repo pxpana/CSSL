@@ -20,3 +20,4 @@ config: {'task_id': 1, 'scenario_id': 5, '_wandb': {}}
 2025-06-11 18:52:15,298 INFO    MainThread:1463042 [wandb_run.py:_redirect():2371] Wrapping output streams.
 2025-06-11 18:52:15,298 INFO    MainThread:1463042 [wandb_run.py:_redirect():2394] Redirects installed.
 2025-06-11 18:52:15,299 INFO    MainThread:1463042 [wandb_init.py:init():1056] run started, returning control to user process
+2025-06-11 19:23:10,820 INFO    MainThread:1463042 [wandb_run.py:_config_callback():1327] config_cb None None {'batch_size_per_device': 256, 'lr': 0.3, 'feature_dim': 512, 'num_classes': 100, 'topk': [1, 5]}
