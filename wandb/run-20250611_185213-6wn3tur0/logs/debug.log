@@ -21,3 +21,10 @@ config: {'task_id': 1, 'scenario_id': 5, '_wandb': {}}
 2025-06-11 18:52:15,298 INFO    MainThread:1463042 [wandb_run.py:_redirect():2394] Redirects installed.
 2025-06-11 18:52:15,299 INFO    MainThread:1463042 [wandb_init.py:init():1056] run started, returning control to user process
 2025-06-11 19:23:10,820 INFO    MainThread:1463042 [wandb_run.py:_config_callback():1327] config_cb None None {'batch_size_per_device': 256, 'lr': 0.3, 'feature_dim': 512, 'num_classes': 100, 'topk': [1, 5]}
+2025-06-11 19:28:17,755 INFO    MainThread:1463042 [wandb_run.py:_finish():2189] finishing run mxdici-jozi/CSSL/6wn3tur0
+2025-06-11 19:28:17,755 INFO    MainThread:1463042 [wandb_run.py:_atexit_cleanup():2419] got exitcode: 0
+2025-06-11 19:28:17,756 INFO    MainThread:1463042 [wandb_run.py:_restore():2401] restore
+2025-06-11 19:28:17,756 INFO    MainThread:1463042 [wandb_run.py:_restore():2407] restore done
+2025-06-11 19:28:21,797 INFO    MainThread:1463042 [wandb_run.py:_footer_history_summary_info():4064] rendering history
+2025-06-11 19:28:21,798 INFO    MainThread:1463042 [wandb_run.py:_footer_history_summary_info():4096] rendering summary
+2025-06-11 19:28:21,798 INFO    MainThread:1463042 [wandb_run.py:_footer_sync_info():4025] logging synced files

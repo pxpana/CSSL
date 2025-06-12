@@ -8,3 +8,12 @@
 {"time":"2025-06-11T19:13:26.307964096+02:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/mxdici-jozi/CSSL/6wn3tur0/file_stream\": EOF"}
 {"time":"2025-06-11T19:13:39.094480965+02:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/mxdici-jozi/CSSL/6wn3tur0/file_stream\": EOF"}
 {"time":"2025-06-11T19:13:54.467758317+02:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/mxdici-jozi/CSSL/6wn3tur0/file_stream\": EOF"}
+{"time":"2025-06-11T19:28:17.756344157+02:00","level":"INFO","msg":"Stopping system monitor"}
+{"time":"2025-06-11T19:28:17.756375776+02:00","level":"INFO","msg":"Stopped system monitor"}
+{"time":"2025-06-11T19:28:18.757588348+02:00","level":"INFO","msg":"handler: operation stats","stats":{"operations":[{"desc":"updating run config","runtime_seconds":0.606951351},{"desc":"uploading history steps 1367-1391, summary, console lines 41-43","runtime_seconds":0.010759411}],"total_operations":2}}
+{"time":"2025-06-11T19:28:21.190221836+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-06-11T19:28:21.798528158+02:00","level":"INFO","msg":"stream: closing","id":"6wn3tur0"}
+{"time":"2025-06-11T19:28:21.798537685+02:00","level":"INFO","msg":"handler: closed","stream_id":"6wn3tur0"}
+{"time":"2025-06-11T19:28:21.798543146+02:00","level":"INFO","msg":"writer: Close: closed","stream_id":"6wn3tur0"}
+{"time":"2025-06-11T19:28:21.798564956+02:00","level":"INFO","msg":"sender: closed","stream_id":"6wn3tur0"}
+{"time":"2025-06-11T19:28:21.798578933+02:00","level":"INFO","msg":"stream: closed","id":"6wn3tur0"}

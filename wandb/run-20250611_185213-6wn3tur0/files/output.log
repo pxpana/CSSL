@@ -39,5 +39,6 @@ Loading `train_dataloader` to estimate number of stepping batches.
 44.881    Total estimated model params size (MB)
 70        Modules in train mode
 0         Modules in eval mode
-Epoch 11:  81%|▊| 158/196 [00:01<00:00, 87.40it/s, v_num=tur0, train_loss=2.170, val_loss=2.020, Accuracy=0.566, Accuracy 1:T=0.475, AIC=0.475, BWT
+Epoch 99: 100%|█| 196/196 [00:02<00:00, 69.08it/s, v_num=tur0, train_loss=1.610, val_loss=1.970, Accuracy=0.555, Accuracy 1:T=0.488, AIC=0.488, BWT
                                                                                                                                                    
+`Trainer.fit` stopped: `max_epochs=100` reached.
