@@ -31,34 +31,75 @@ def get_model(backbone, args):
     return model
 
 
-def get_classifier(backbone, num_classes, logger, args):
-    from cssl.models import Classifier
+def get_classifier(
+    backbone, 
+    num_classes, 
+    loggers,
+    classifier_type, 
+    args
+):
+    if "linear" in classifier_type:
+        from cssl.models import LinearClassifier
+        linear_classifier = LinearClassifier(
+            model=backbone,
+            batch_size_per_device=args.test_batch_size,
+            lr=args.optimizer["classifier_learning_rate"],
+            feature_dim=args.feature_dim,
+            num_classes=num_classes,
+            logger=loggers["linear"],
+        )
+    if "knn" in classifier_type:
+        from cssl.models import KNNClassifier
+        knn_classifier = KNNClassifier(
+            model=backbone,
+            num_classes=num_classes,
+            knn_k=200,
+            knn_t=0.1,
+            logger=loggers["knn"],
+        )
+    if "ncm" in classifier_type:
+        from cssl.models import NCMClassifier
+        ncm_classifier = NCMClassifier(
+            model=backbone,
+            num_classes=num_classes,
+            knn_k=None,
+            knn_t=None,
+            logger=loggers["ncm"],
+        )
 
-    classifier = Classifier(
-        model=backbone,
-        batch_size_per_device=args.test_batch_size,
-        lr=args.optimizer["classifier_learning_rate"],
-        feature_dim=args.feature_dim,
-        num_classes=num_classes,
-        logger=logger,
-    )
-    return classifier
+    classifiers = {
+        "linear": linear_classifier,
+        "knn": knn_classifier,
+        "ncm": ncm_classifier
+    }
+    return classifiers
 
 def get_pretrain_transform(args):
     name = args.model_name.lower()
     pretrain_collate_function=None
     if name == "simclr":
         from lightly.transforms import SimCLRTransform
-        transform = SimCLRTransform(input_size=args.image_dim)
+        transform = SimCLRTransform(
+            input_size=args.image_dim,
+            gaussian_blur=args.gaussian_blur
+        )
     elif name == "mocov2plus":
         from lightly.transforms import MoCoV2Transform
         transform = MoCoV2Transform(input_size=args.image_dim, gaussian_blur=0.5)
     elif name in ["byol", "barlowtwins"]:
-        from lightly.transforms import BYOLTransform
+        from lightly.transforms import BYOLTransform, BYOLView1Transform, BYOLView2Transform
+
+        transform_view1 = BYOLView1Transform(
+            input_size=args.image_dim,
+            gaussian_blur=args.gaussian_blur[0]
+        )
+        transform_view2 = BYOLView2Transform(
+            input_size=args.image_dim,
+            gaussian_blur=args.gaussian_blur[1]
+        )
         transform = BYOLTransform(
-            lightly.transforms.BYOLView1Transform(input_size=args.image_dim),
-            lightly.transforms.BYOLView2Transform(input_size=args.image_dim)
-            )
+            transform_view1, transform_view2
+        )
     elif name == "simsiam":
         from lightly.transforms import SimSiamTransform
         transform = SimSiamTransform(input_size=args.image_dim)

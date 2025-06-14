@@ -8,6 +8,7 @@ data/
 wandb/
 CSSL/
 logs/
+lightning_logs/
 
 __pycache__/
 */__pycache__/

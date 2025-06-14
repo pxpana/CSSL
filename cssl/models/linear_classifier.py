@@ -1,14 +1,18 @@
 import torch
 import numpy as np
-from lightly.utils.benchmarking import LinearClassifier
+from lightly.utils.benchmarking import LinearClassifier as LightlyLinearClassifier
 from typing import Any, Dict, List, Tuple, Union
 from lightly.utils.benchmarking.topk import mean_topk_accuracy
 from torch import Tensor
 
-class Classifier(LinearClassifier):
+
+
+class LinearClassifier(LightlyLinearClassifier):
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
         super().__init__(*args, **kwargs)
+
+        self.classifier_type = "Linear"
 
     def shared_step(
         self, 
@@ -49,37 +53,3 @@ class Classifier(LinearClassifier):
         loss = self.shared_step(batch=batch, batch_idx=batch_idx, split="val")
 
         return loss
-    
-    def on_validation_epoch_end(self):
-        if not self.trainer.sanity_checking:
-            log_dict = {
-                f"Accuracy": np.mean(np.array(self.metrics_logger.accuracy_per_task)[:(self.metrics_logger.current_task+1)]),
-                f"Accuracy 1:T": np.mean(np.array(self.metrics_logger.accuracy_per_task)),
-                f"AIC": self.metrics_logger.average_incremental_accuracy,
-                f"BWT": self.metrics_logger.backward_transfer,
-                f"FWT": self.metrics_logger.forward_transfer,
-                f"PBWT": self.metrics_logger.positive_backward_transfer,
-                f"Remembering": self.metrics_logger.remembering,
-                f"Forgetting": self.metrics_logger.forgetting,
-            }
-            self.metrics_logger.end_epoch()
-            self.log_dict(log_dict, sync_dist=True, prog_bar=True)
-
-        return super().on_validation_epoch_end()
-    
-    def on_train_end(self):
-        self.metrics_logger.end_task()
-
-        return super().on_train_end()
-
-
-    def continual_logger(self, predicted_labels, targets, tasks, split):
-        if split=="val":
-            self.metrics_logger.add(
-                [
-                    predicted_labels, 
-                    targets, 
-                    tasks
-                ], 
-                subset="test" if split=="val" else "train"
-            )
