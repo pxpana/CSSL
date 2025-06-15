@@ -1,6 +1,6 @@
 # ignore ALL .log files
 
-cssl/draft.ipynb
+draft.ipynb
 
 # ignore ALL files in ANY directory named temp
 .venv/

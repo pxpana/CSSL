@@ -5,14 +5,15 @@ from typing import Any, Dict, List, Tuple, Union
 from lightly.utils.benchmarking.topk import mean_topk_accuracy
 from torch import Tensor
 
+from cssl.models import BaseClassifier
 
-
-class LinearClassifier(LightlyLinearClassifier):
+class LinearClassifier(
+    LightlyLinearClassifier,
+    BaseClassifier
+):
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
         super().__init__(*args, **kwargs)
-
-        self.classifier_type = "Linear"
 
     def shared_step(
         self, 

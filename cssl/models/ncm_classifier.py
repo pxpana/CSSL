@@ -14,8 +14,7 @@ class NCMClassifier(
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
         super().__init__(*args, **kwargs)
-
-        self.classifier_type = "NCM"
+        
         self._class_means = None
 
     def concat_train_features(self) -> None:
@@ -65,12 +64,4 @@ class NCMClassifier(
             predicted_scores = self.ncm_predict(features=features)
             _, predicted_classes = predicted_scores.topk(max(self.topk))
 
-            topk = mean_topk_accuracy(
-                predicted_classes=predicted_classes, targets=targets, k=self.topk
-            )
-
-            log_dict = {f"val_top{k}": acc for k, acc in topk.items()}
-            self.log_dict(
-                log_dict, prog_bar=True, sync_dist=True, batch_size=len(targets)
-            )
             self.continual_logger(predicted_classes[:, 0], targets, tasks, split="val")

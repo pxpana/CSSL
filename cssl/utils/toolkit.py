@@ -3,8 +3,6 @@ import numpy as np
 import torch
 import  json
 
-from cssl.metrics.logger import Logger
-
 class ConfigEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, type):
@@ -144,14 +142,3 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id, project="CSS
     )
 
     return callbacks, wandb_logger
-
-def get_loggers(test_classifier_scenario, class_increment, random_classifiers, root_log, args):
-
-    logger = Logger(
-            random_classifiers=random_classifiers,
-            args=args,
-            test_classifier_scenario=test_classifier_scenario,
-            class_increment=class_increment,
-            list_keywords=["performance"],
-            root_log=root_log
-        )

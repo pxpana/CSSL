@@ -9,9 +9,9 @@ from tqdm import tqdm
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from torchvision.models import resnet18
-from cssl.utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger, get_checkpoint, get_loggers
+from cssl.utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger, get_checkpoint
 #from continuum.metrics.logger import Logger as LOGGER
-from cssl.metrics.logger import get_random_classifiers
+from cssl.metrics.logger import Logger, get_random_classifiers
 from lightly.models.utils import deactivate_requires_grad, activate_requires_grad
 
 def main(args):
@@ -41,45 +41,32 @@ def main(args):
         train_pretrain_scenario, train_classifier_scenario, test_classifier_scenario = data_manager.get_scenerio(scenario_id)
 
 
-        if not os.path.exists(f"logs/{args.model_name}_{args.dataset}_{args.num_tasks}"):
-            os.makedirs(f"logs/{args.model_name}_{args.dataset}_{args.num_tasks}")
+        if not os.path.exists(f"logs/{args.model_name}_linear_{args.dataset}_{args.num_tasks}"):
+            os.makedirs(f"logs/{args.model_name}_linear_{args.dataset}_{args.num_tasks}")
+            os.makedirs(f"logs/{args.model_name}_knn_{args.dataset}_{args.num_tasks}")
+            os.makedirs(f"logs/{args.model_name}_ncm_{args.dataset}_{args.num_tasks}")
         logger = Logger(
             random_classifiers=random_classifiers,
             args=args,
             test_classifier_scenario=test_classifier_scenario,
             class_increment=class_increment,
             list_keywords=["performance"],
-            root_log=f"logs/{args.model_name}_{args.dataset}_{args.num_tasks}"
+            root_log=f"logs/{args.model_name}_linear_{args.dataset}_{args.num_tasks}"
         )
 
+        knn_logger = deepcopy(logger)
+        knn_logger.root_log = f"logs/{args.model_name}_knn_{args.dataset}_{args.num_tasks}"
+        ncm_logger = deepcopy(logger)
+        ncm_logger.root_log = f"logs/{args.model_name}_ncm_{args.dataset}_{args.num_tasks}"
+
         loggers = {
-            "linear": get_loggers(
-                test_classifier_scenario, 
-                class_increment, 
-                f"logs/{args.model_name}_linear_{args.dataset}_{args.num_tasks}",
-                random_classifiers, 
-                args
-            ),
-            "knn": get_loggers(
-                test_classifier_scenario, 
-                class_increment, 
-                f"logs/{args.model_name}_knn_{args.dataset}_{args.num_tasks}",
-                random_classifiers, 
-                args
-            ),
-            "ncm": get_loggers(
-                test_classifier_scenario, 
-                class_increment, 
-                f"logs/{args.model_name}_ncm_{args.dataset}_{args.num_tasks}",
-                random_classifiers, 
-                args
-            ),
+            "linear": logger,
+            "knn": knn_logger,
+            "ncm": ncm_logger
         }
 
         for task_id, train_pretrain_taskset in tqdm(enumerate(train_pretrain_scenario), desc="Training tasks"):
             print("TASK ID", task_id)
-            #train_classifier_taskset = train_classifier_scenario[:task_id+1]
-            #test_classifier_taskset = test_classifier_scenario[:task_id+1]
             train_pretrain_loader, train_classifier_loader, test_classifier_loader = data_manager.get_dataloader(
                 train_pretrain_taskset, 
                 train_classifier_scenario[:], 
@@ -99,18 +86,18 @@ def main(args):
             '''
             Train the model
             '''
-            # trainer = pl.Trainer(
-            #     max_epochs=args.train_epochs, 
-            #     accelerator=args.accelerator,
-            #     devices=args.gpu_devices,
-            #     accumulate_grad_batches=args.train_accumulate_grad_batches,
-            #     callbacks=pretrain_callbacks,
-            #     logger=pretrain_wandb_logger,
-            #     strategy=args.strategy,
-            #     precision=args.precision,
-            #     sync_batchnorm=args.sync_batchnorm,
-            # )
-            # trainer.fit(model, train_pretrain_loader)
+            trainer = pl.Trainer(
+                max_epochs=args.train_epochs, 
+                accelerator=args.accelerator,
+                devices=args.gpu_devices,
+                accumulate_grad_batches=args.train_accumulate_grad_batches,
+                callbacks=pretrain_callbacks,
+                logger=pretrain_wandb_logger,
+                strategy=args.strategy,
+                precision=args.precision,
+                sync_batchnorm=args.sync_batchnorm,
+            )
+            trainer.fit(model, train_pretrain_loader)
 
             '''
             Evaluate the model 
@@ -128,17 +115,17 @@ def main(args):
 
             # LINEAR CLASSIFIER
 
-            # trainer = pl.Trainer(
-            #     max_epochs=args.test_epochs, 
-            #     accelerator=args.accelerator,
-            #     devices=args.gpu_devices,
-            #     enable_checkpointing=False,
-            #     logger=classifier_wandb_logger,
-            #     strategy=args.strategy,
-            #     precision=args.precision,
-            #     sync_batchnorm=args.sync_batchnorm,
-            # )
-            # trainer.fit(classifiers["linear"], train_classifier_loader, test_classifier_loader)
+            trainer = pl.Trainer(
+                max_epochs=args.test_epochs, 
+                accelerator=args.accelerator,
+                devices=args.gpu_devices,
+                enable_checkpointing=False,
+                logger=classifier_wandb_logger,
+                strategy=args.strategy,
+                precision=args.precision,
+                sync_batchnorm=args.sync_batchnorm,
+            )
+            trainer.fit(classifiers["linear"], train_classifier_loader, test_classifier_loader)
 
             # KNN CLASSIFIER
 
@@ -147,7 +134,6 @@ def main(args):
                 accelerator=args.accelerator,
                 devices=args.gpu_devices,
                 enable_checkpointing=False,
-                logger=classifier_wandb_logger,
                 strategy=args.strategy,
                 precision=args.precision,
                 sync_batchnorm=args.sync_batchnorm,
@@ -164,7 +150,6 @@ def main(args):
                 accelerator=args.accelerator,
                 devices=args.gpu_devices,
                 enable_checkpointing=False,
-                logger=classifier_wandb_logger,
                 strategy=args.strategy,
                 precision=args.precision,
                 sync_batchnorm=args.sync_batchnorm,

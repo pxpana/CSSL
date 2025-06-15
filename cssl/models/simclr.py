@@ -14,6 +14,7 @@ class SimCLR(BaseSSL):
             hidden_dim=config.hidden_dim, 
             output_dim=config.output_dim,
             num_layers=config.num_layers,
+            batch_norm=config.projection_batchnorm,
         )
         self.criterion = loss.NTXentLoss(
             temperature=config.temperature,

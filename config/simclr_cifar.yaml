@@ -11,6 +11,9 @@ feature_dim: 512
 hidden_dim: 2048
 output_dim: 256
 num_layers: 2
+projection_batchnorm: False
+
+
 trust_coefficient: 0.02
 clip_lr: True
 
