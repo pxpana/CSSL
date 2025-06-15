@@ -41,3 +41,4 @@ class KNNClassifier(
             )
 
             self.continual_logger(predicted_classes[:, 0], targets, tasks, split="val")
+

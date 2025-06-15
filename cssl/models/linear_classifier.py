@@ -54,3 +54,4 @@ class LinearClassifier(
         loss = self.shared_step(batch=batch, batch_idx=batch_idx, split="val")
 
         return loss
+    

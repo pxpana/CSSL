@@ -28,10 +28,10 @@ class BaseClassifier(LightningModule):
 
         return super().on_validation_epoch_end()
 
-    def on_validation_end(self):
+    def teardown(self, stage):
         self.metrics_logger.end_task()
 
-        return super().on_validation_end()
+        return super().teardown(stage)
 
 
     def continual_logger(self, predicted_labels, targets, tasks, split):
