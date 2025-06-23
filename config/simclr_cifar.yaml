@@ -1,5 +1,5 @@
 model_name: "SimCLR"
-
+split_strategy: "class"
 dataset: "cifar100"
 image_dim: 32
 
@@ -25,12 +25,14 @@ train_epochs: 500
 optimizer:
   name: "lars"
   train_learning_rate: 0.4
-  classifier_learning_rate: 0.1
+  classifier_learning_rate: 0.004
   weight_decay: 1.0e-5
 
 temperature: 0.2
 
-test_batch_size: 256
+use_online_classifier: True
+
+test_batch_size: 128
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
@@ -38,7 +40,12 @@ num_workers: 8
 set_float32_matmul_precision: "high"
 
 # Augmentations
-gaussian_blur: 0.0
+gaussian_blur: [0.0, 0.0]
+solarization: [0.0, 0.0]
+brightness: 0.8
+contrast: 0.8
+saturation: 0.8
+hue: 0.2
 
 # overwrite Pytorch Lightening default
 num_devices: 1

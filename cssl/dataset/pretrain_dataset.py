@@ -8,12 +8,8 @@ class PretrainDataset(Dataset):
         self.transform = transform
 
     def __getitem__(self, idx):
-        path = self.data[idx]
+        image = self.data[idx][0]
 
-        if isinstance(path, str):
-            image = Image.open(path).convert("RGB")
-        else:
-            image = Image.fromarray(path).convert("RGB")
         transformed = self.transform(image)
 
         return transformed

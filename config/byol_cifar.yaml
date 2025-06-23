@@ -1,5 +1,5 @@
 model_name: "BYOL"
-
+split_strategy: "class"
 dataset: "cifar100"
 image_dim: 32
 
@@ -24,7 +24,7 @@ train_epochs: 500
 trust_coefficient: 0.02
 clip_lr: True
 
-test_batch_size: 256
+test_batch_size: 128
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
@@ -36,6 +36,15 @@ optimizer:
 
 num_workers: 8
 set_float32_matmul_precision: "high"
+
+# Augmentations
+gaussian_blur: [0.0, 0.0]
+solarization: [0.0, 0.2]
+brightness: 0.4
+contrast: 0.4
+saturation: 0.2
+hue: 0.1
+
 
 # overwrite Pytorch Lightening default
 num_devices: 1

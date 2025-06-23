@@ -1,10 +1,10 @@
 model_name: "SwAV"
-
+split_strategy: "class"
 dataset: "cifar100"
 image_dim: 32
 
 num_classes: 100
-num_tasks: 1
+num_tasks: 5
 seeds: [5]
 
 feature_dim: 512
@@ -40,6 +40,14 @@ optimizer:
 
 num_workers: 4
 set_float32_matmul_precision: "high"
+
+# Augmentations
+gaussian_blur: [0.0, 0.0]
+solarization: [0.0, 0.0]
+brightness: 0.8
+contrast: 0.8
+saturation: 0.8
+hue: 0.2
 
 # overwrite Pytorch Lightening default
 num_devices: 1

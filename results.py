@@ -17,10 +17,8 @@ def results(args):
 
     logger = continuum_Logger(list_keywords=["performance"])
     logger.logger_dict = logger_dict
-    print(logger_dict["current_epoch"])
-    print(logger_dict.get("current_epoch", 0))
-    logger.current_task = logger_dict.get("current_task", 0)
-    logger.current_epoch = logger_dict.get("current_epoch", 0)
+    logger.current_task = 4
+    logger.current_epoch = 0
     logger._update_dict_architecture(update_task=True)
 
     print(f"Metric result: {logger.my_pretty_metric}")

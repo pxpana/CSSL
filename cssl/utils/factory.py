@@ -74,46 +74,6 @@ def get_classifier(
     }
     return classifiers
 
-def get_pretrain_transform(args):
-    name = args.model_name.lower()
-    pretrain_collate_function=None
-    if name == "simclr":
-        from lightly.transforms import SimCLRTransform
-        transform = SimCLRTransform(
-            input_size=args.image_dim,
-            gaussian_blur=args.gaussian_blur
-        )
-    elif name == "mocov2plus":
-        from lightly.transforms import MoCoV2Transform
-        transform = MoCoV2Transform(input_size=args.image_dim, gaussian_blur=0.5)
-    elif name in ["byol", "barlowtwins"]:
-        from lightly.transforms import BYOLTransform, BYOLView1Transform, BYOLView2Transform
-
-        transform_view1 = BYOLView1Transform(
-            input_size=args.image_dim,
-            gaussian_blur=args.gaussian_blur[0]
-        )
-        transform_view2 = BYOLView2Transform(
-            input_size=args.image_dim,
-            gaussian_blur=args.gaussian_blur[1]
-        )
-        transform = BYOLTransform(
-            transform_view1, transform_view2
-        )
-    elif name == "simsiam":
-        from lightly.transforms import SimSiamTransform
-        transform = SimSiamTransform(input_size=args.image_dim)
-    elif name == "vicreg":
-        from lightly.transforms import VICRegTransform
-        transform = VICRegTransform(input_size=args.image_dim)
-    elif name == "swav":
-        from lightly.transforms import SwaVTransform
-        transform = SwaVTransform(crop_sizes=args.crop_sizes)
-
-    else:
-        assert 0
-    return transform
-
 def get_checkpoint(trainer, backbone, args):
     name = args.model_name.lower()
     if name == "simclr":

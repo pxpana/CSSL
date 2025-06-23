@@ -12,6 +12,7 @@ from torchvision.models import resnet18
 from cssl.utils import DataManager, get_model, get_pretrain_transform, get_classifier, get_callbacks_logger, get_checkpoint
 #from continuum.metrics.logger import Logger as LOGGER
 from cssl.metrics.logger import Logger, get_random_classifiers
+from cssl.dataset import ClassifierDataset, PretrainDataset
 from lightly.models.utils import deactivate_requires_grad, activate_requires_grad
 
 def main(args):
@@ -32,14 +33,24 @@ def main(args):
         backbone.maxpool = torch.nn.Identity()
         model = get_model(backbone, args)
 
-        pretrain_transform = get_pretrain_transform(args)
-
         data_manager = DataManager(
             args=args,
         )
 
-        train_pretrain_scenario, train_classifier_scenario, test_classifier_scenario = data_manager.get_scenerio(scenario_id)
-
+        train_classifier_dataset = ClassifierDataset(data=data_manager.train_dataset, transform=data_manager.train_classifier_transform, tasks=data_manager.tasks)
+        train_classifier_loader = DataLoader(
+            train_classifier_dataset, 
+            batch_size=args.test_batch_size, 
+            num_workers=args.num_workers, 
+            shuffle=True
+        )
+        test_classifier_dataset = ClassifierDataset(data=data_manager.test_dataset, transform=data_manager.test_classifier_transform, tasks=data_manager.tasks)
+        test_classifier_loader = DataLoader(
+            test_classifier_dataset, 
+            batch_size=args.test_batch_size, 
+            num_workers=args.num_workers, 
+            shuffle=False
+        )
 
         if not os.path.exists(f"logs/{args.model_name}_linear_{args.dataset}_{args.num_tasks}"):
             os.makedirs(f"logs/{args.model_name}_linear_{args.dataset}_{args.num_tasks}")
@@ -48,7 +59,7 @@ def main(args):
         logger = Logger(
             random_classifiers=random_classifiers,
             args=args,
-            test_classifier_scenario=test_classifier_scenario,
+            test_classifier_loader=test_classifier_loader,
             class_increment=class_increment,
             list_keywords=["performance"],
             root_log=f"logs/{args.model_name}_linear_{args.dataset}_{args.num_tasks}"
@@ -65,15 +76,24 @@ def main(args):
             "ncm": ncm_logger
         }
 
-        for task_id, train_pretrain_taskset in tqdm(enumerate(train_pretrain_scenario), desc="Training tasks"):
+        for task_id, train_dataset in tqdm(enumerate(data_manager.train_pretrain_scenario), desc="Training tasks"):
             print("TASK ID", task_id)
-            train_pretrain_loader, train_classifier_loader, test_classifier_loader = data_manager.get_dataloader(
-                train_pretrain_taskset, 
-                train_classifier_scenario[:], 
-                test_classifier_scenario[:], 
-                pretrain_transform,
-                args
+
+            pretrain_dataset = PretrainDataset(data=train_dataset, transform=data_manager.pretrain_transform)
+            train_pretrain_loader = DataLoader(
+                pretrain_dataset, 
+                batch_size=args.train_batch_size, 
+                num_workers=args.num_workers, 
+                shuffle=True
             )
+            online_classifier_loader = DataLoader(
+                test_classifier_dataset, 
+                batch_size=args.train_batch_size, 
+                num_workers=args.num_workers, 
+                shuffle=True
+            )
+
+            train_pretrain_loader = {"train_loader": train_pretrain_loader, "online_loader": online_classifier_loader}
 
             pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(args, training_type="pretrain", task_id=task_id, scenario_id=scenario_id)
             _, classifier_wandb_logger = get_callbacks_logger(args, training_type="classifier", task_id=task_id, scenario_id=scenario_id)
@@ -97,7 +117,7 @@ def main(args):
                 precision=args.precision,
                 sync_batchnorm=args.sync_batchnorm,
             )
-            trainer.fit(model, train_pretrain_loader)
+            trainer.fit(model, train_pretrain_loader, test_classifier_loader)
 
             '''
             Evaluate the model 
@@ -138,10 +158,10 @@ def main(args):
                 precision=args.precision,
                 sync_batchnorm=args.sync_batchnorm,
             )
-            trainer.validate(
-                model=classifiers["knn"], 
-                dataloaders=[train_classifier_loader, test_classifier_loader]
-            )
+            # trainer.validate(
+            #     model=classifiers["knn"], 
+            #     dataloaders=[train_classifier_loader, test_classifier_loader]
+            # )
 
             # NCM CLASSIFIER
 
@@ -154,10 +174,10 @@ def main(args):
                 precision=args.precision,
                 sync_batchnorm=args.sync_batchnorm,
             )
-            trainer.validate(
-                model=classifiers["ncm"], 
-                dataloaders=[train_classifier_loader, test_classifier_loader]
-            )
+            # trainer.validate(
+            #     model=classifiers["ncm"], 
+            #     dataloaders=[train_classifier_loader, test_classifier_loader]
+            # )
 
 
             wandb.finish()

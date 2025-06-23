@@ -32,7 +32,11 @@ class LinearClassifier(
         self.log(
             f"{split}_loss", loss, prog_bar=True, sync_dist=True, batch_size=batch_size
         )
-        self.continual_logger(predicted_labels, targets, tasks, split)
+
+        if split == "val":
+            self.predicted_labels.extend(predicted_labels.detach().cpu().tolist())
+            self.targets.extend(targets.detach().cpu().tolist())
+            self.tasks.extend(tasks.detach().cpu().tolist())
 
         return loss
 
@@ -42,7 +46,6 @@ class LinearClassifier(
         batch_idx: int
     ) -> Tensor:
         loss = self.shared_step(batch=batch, batch_idx=batch_idx, split="train")
-        images, targets, tasks = batch[0], batch[1], batch[2]
 
         return loss
 
