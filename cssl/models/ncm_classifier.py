@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Tuple, Union
 from lightly.utils.benchmarking.topk import mean_topk_accuracy
 from torch import Tensor
 
-from cssl.models import BaseClassifier
+from cssl.models.base_classifier import BaseClassifier
 
 class NCMClassifier(
     LightlyKNNClassifier,
@@ -13,12 +13,32 @@ class NCMClassifier(
 ):
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
+        kwargs["knn_k"] = None  # NCM does not use k-nearest neighbors
+        kwargs["knn_t"] = None  # NCM does not use temperature scaling
         super().__init__(*args, **kwargs)
         
         self._class_means = None
 
+    def append_train_features(self, features, targets):
+        self._train_features.append(features)
+        self._train_targets.append(targets)
+
     def concat_train_features(self) -> None:
-        super().concat_train_features()
+        if self._train_features and self._train_targets:
+            # Features and targets have size (world_size, batch_size, dim) and
+            # (world_size, batch_size) after gather. For non-distributed training,
+            # features and targets have size (batch_size, dim) and (batch_size,).
+
+            features = torch.cat(self._train_features, dim=0)
+            self._train_features = []
+            targets = torch.cat(self._train_targets, dim=0)
+            self._train_targets = []
+            # Reshape to (dim, world_size * batch_size)
+            features = features.flatten(end_dim=-2).t().contiguous()
+            self._train_features_tensor = features
+            # Reshape to (world_size * batch_size,)
+            targets = targets.flatten().t().contiguous()
+            self._train_targets_tensor = targets
 
         self._train_features_tensor = self._train_features_tensor.T
 
@@ -35,7 +55,6 @@ class NCMClassifier(
                 self._class_means.append(torch.zeros(1, self._train_features_tensor.size(1)))
         
         self._class_means = torch.stack(self._class_means)
-        self._class_means = self._class_means.to(self._train_features_tensor.device)
 
     def ncm_predict(self, features: torch.Tensor) -> torch.Tensor:
         if self._class_means is None:

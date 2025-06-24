@@ -1,32 +1,32 @@
 import torch
 import lightly
 
-def get_model(backbone, args):
-    name = args.model_name.lower()
+def get_model(backbone, config, loggers, classifier_loader):
+    name = config.model_name.lower()
     if name == "simclr":
         from cssl.models import SimCLR
-        model = SimCLR(backbone=backbone, config=args)
+        model = SimCLR(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
     elif name == "mocov2":
         from cssl.models import MoCov2
-        model = MoCov2(backbone=backbone, config=args)
+        model = MoCov2(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
     elif name == "mocov2plus":
         from cssl.models import MoCov2Plus
-        model = MoCov2Plus(backbone=backbone, config=args)
+        model = MoCov2Plus(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
     elif name == "byol":
         from cssl.models import BYOL
-        model = BYOL(backbone=backbone, config=args)
+        model = BYOL(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
     elif name == "barlowtwins":
         from cssl.models import BarlowTwins
-        model = BarlowTwins(backbone=backbone, config=args)
+        model = BarlowTwins(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
     elif name == "simsiam":
         from cssl.models import SimSiam
-        model = SimSiam(backbone=backbone, config=args)
+        model = SimSiam(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
     elif name == "vicreg":
         from cssl.models import VICReg
-        model = VICReg(backbone=backbone, config=args)
+        model = VICReg(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
     elif name == "swav":
         from cssl.models import SwAV
-        model = SwAV(backbone=backbone, config=args)
+        model = SwAV(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
 
     return model
 

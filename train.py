@@ -27,12 +27,6 @@ def main(args):
         seed_everything(scenario_id)
         torch.set_float32_matmul_precision(args.set_float32_matmul_precision)
 
-        backbone = resnet18(pretrained=False)
-        backbone.fc = torch.nn.Identity()
-        backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
-        backbone.maxpool = torch.nn.Identity()
-        model = get_model(backbone, args)
-
         data_manager = DataManager(
             args=args,
         )
@@ -75,6 +69,18 @@ def main(args):
             "knn": knn_logger,
             "ncm": ncm_logger
         }
+
+        # Initialize the model
+        backbone = resnet18(pretrained=False)
+        backbone.fc = torch.nn.Identity()
+        backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
+        backbone.maxpool = torch.nn.Identity()
+        model = get_model(
+            backbone=backbone, 
+            config=args,  
+            loggers=loggers, 
+            classifier_loader={"train": train_classifier_loader, "test": test_classifier_loader}
+        )
 
         for task_id, train_dataset in tqdm(enumerate(data_manager.train_pretrain_scenario), desc="Training tasks"):
             print("TASK ID", task_id)
@@ -146,38 +152,6 @@ def main(args):
                 sync_batchnorm=args.sync_batchnorm,
             )
             trainer.fit(classifiers["linear"], train_classifier_loader, test_classifier_loader)
-
-            # KNN CLASSIFIER
-
-            trainer = pl.Trainer(
-                max_epochs=1, 
-                accelerator=args.accelerator,
-                devices=args.gpu_devices,
-                enable_checkpointing=False,
-                strategy=args.strategy,
-                precision=args.precision,
-                sync_batchnorm=args.sync_batchnorm,
-            )
-            # trainer.validate(
-            #     model=classifiers["knn"], 
-            #     dataloaders=[train_classifier_loader, test_classifier_loader]
-            # )
-
-            # NCM CLASSIFIER
-
-            trainer = pl.Trainer(
-                max_epochs=1, 
-                accelerator=args.accelerator,
-                devices=args.gpu_devices,
-                enable_checkpointing=False,
-                strategy=args.strategy,
-                precision=args.precision,
-                sync_batchnorm=args.sync_batchnorm,
-            )
-            # trainer.validate(
-            #     model=classifiers["ncm"], 
-            #     dataloaders=[train_classifier_loader, test_classifier_loader]
-            # )
 
 
             wandb.finish()

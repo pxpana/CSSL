@@ -7,7 +7,7 @@ from torch import Tensor
 
 from lightly.utils.benchmarking import knn_predict
 
-from cssl.models import BaseClassifier
+from cssl.models.base_classifier import BaseClassifier
 
 class KNNClassifier(
     LightlyKNNClassifier,
@@ -31,8 +31,9 @@ class KNNClassifier(
 
             assert self._train_features_tensor is not None
             assert self._train_targets_tensor is not None
+
             predicted_classes = knn_predict(
-                feature=features,
+                feature=features.cpu(),
                 feature_bank=self._train_features_tensor,
                 feature_labels=self._train_targets_tensor,
                 num_classes=self.num_classes,
@@ -41,4 +42,22 @@ class KNNClassifier(
             )
 
             self.continual_logger(predicted_classes[:, 0], targets, tasks, split="val")
+
+    def concat_train_features(self) -> None:
+        if self._train_features and self._train_targets:
+            # Features and targets have size (world_size, batch_size, dim) and
+            # (world_size, batch_size) after gather. For non-distributed training,
+            # features and targets have size (batch_size, dim) and (batch_size,).
+
+            features = torch.cat(self._train_features, dim=0)
+            self._train_features = []
+            targets = torch.cat(self._train_targets, dim=0)
+            self._train_targets = []
+            # Reshape to (dim, world_size * batch_size)
+            features = features.flatten(end_dim=-2).t().contiguous()
+            self._train_features_tensor = features
+            # Reshape to (world_size * batch_size,)
+            targets = targets.flatten().t().contiguous()
+            self._train_targets_tensor = targets
+
 

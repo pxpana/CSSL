@@ -1,4 +1,6 @@
 import math
+import torch
+from tqdm import tqdm
 from typing import List, Dict, Tuple
 from torch import Tensor
 from pytorch_lightning import LightningModule
@@ -11,9 +13,14 @@ from lightly.utils.benchmarking import OnlineLinearClassifier
 
 from lightly.utils.benchmarking.topk import mean_topk_accuracy
 
+from cssl.models.knn_classifier import KNNClassifier
+from cssl.models.ncm_classifier import NCMClassifier
+
 class BaseSSL(LightningModule):
-    def __init__(self, backbone, config=None):
+    def __init__(self, backbone, config=None, loggers=None, classifier_loader=None):
         super().__init__()
+
+        self.config = config
 
         self.backbone = backbone
         self.projection_head = None
@@ -31,6 +38,13 @@ class BaseSSL(LightningModule):
 
         self.online_classifier = OnlineLinearClassifier(feature_dim=config.feature_dim, num_classes=config.num_classes)
         self.classifier_learning_rate = config.optimizer["classifier_learning_rate"]
+
+        self.train_classifier_loader = classifier_loader["train"]
+        self.test_classifier_loader = classifier_loader["test"]
+        self.metrics_loggers = loggers
+        self.record_classifier_every_n_epochs = config.record_classifier_every_n_epochs
+        # initialize classifiers
+        self.init_classifiers()
 
     def forward(self, x):
         features = self.backbone(x).flatten(start_dim=1)
@@ -60,6 +74,68 @@ class BaseSSL(LightningModule):
 
         self.log_dict(cls_log, prog_bar=True, sync_dist=True, batch_size=len(targets))
         return cls_loss
+    
+    def on_validation_epoch_end(self):
+        if not self.trainer.sanity_checking and self.current_epoch%self.record_classifier_every_n_epochs==0:
+            with torch.no_grad():
+                '''
+                    Training KNN and NCM classifiers on the train set.
+                '''
+                for batch_idx, batch in enumerate(self.train_classifier_loader):
+                    batch[0] = batch[0].to(self.device)  # Ensure images are on the correct device
+                    self.knn_classifier.validation_step(batch, batch_idx, dataloader_idx=0)
+
+                for batch_idx, batch in enumerate(self.train_classifier_loader):
+                    batch[0] = batch[0].to(self.device)  # Ensure images are on the correct device
+                    self.ncm_classifier.validation_step(batch, batch_idx, dataloader_idx=0)
+
+                '''
+                    Prediction using KNN and NCM classifiers on the test set.
+                '''
+
+                for batch_idx, batch in enumerate(self.test_classifier_loader):
+                    batch[0] = batch[0].to(self.device)  # Ensure images are on the correct device
+                    self.knn_classifier.validation_step(batch, batch_idx, dataloader_idx=1)
+
+                for batch_idx, batch in enumerate(self.test_classifier_loader):
+                    batch[0] = batch[0].to(self.device)  # Ensure images are on the correct device
+                    self.ncm_classifier.validation_step(batch, batch_idx, dataloader_idx=1)
+
+            # log results
+            self.log_dict({
+                "knn_accuracy": self.knn_classifier.metrics_logger.accuracy,
+                "knn_average_accuracy": self.knn_classifier.metrics_logger.average_accuracy,
+                "knn_forward_transfer": self.knn_classifier.metrics_logger.forward_transfer,
+                "knn_forgetting": self.knn_classifier.metrics_logger.forgetting,
+            }, sync_dist=True, prog_bar=True)
+
+            self.log_dict({
+                "ncm_accuracy": self.ncm_classifier.metrics_logger.accuracy,
+                "ncm_average_accuracy": self.ncm_classifier.metrics_logger.average_accuracy,
+                "ncm_forward_transfer": self.ncm_classifier.metrics_logger.forward_transfer,
+                "ncm_forgetting": self.ncm_classifier.metrics_logger.forgetting,
+            }, sync_dist=True, prog_bar=True)
+
+            # reinitialize classifiers
+            self.init_classifiers()
+
+        return super().on_validation_epoch_end()
+
+    def init_classifiers(self):
+        self.knn_classifier = KNNClassifier(
+            model=self.backbone,
+            num_classes=self.config.num_classes,
+            knn_k=self.config.knn_neighbours,
+            knn_t=self.config.knn_temperature,
+            logger=self.metrics_loggers["knn"]
+        )
+        self.ncm_classifier = NCMClassifier(
+            model=self.backbone,
+            num_classes=self.config.num_classes,
+            logger=self.metrics_loggers["ncm"]
+        )
+
+
 
     def get_effective_lr(self) -> float:
         """Compute the effective learning rate based on batch size and world size."""
