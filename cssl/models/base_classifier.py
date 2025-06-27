@@ -9,6 +9,8 @@ from torch.optim import SGD, Optimizer
 from lightly.utils.scheduler import CosineWarmupScheduler
 from torch.optim.lr_scheduler import MultiStepLR
 
+from torch import Tensor
+
 class BaseClassifier(LightningModule):
     def __init__(self):
         super().__init__()
@@ -33,7 +35,7 @@ class BaseClassifier(LightningModule):
                 task_predicted_labels = predicted_labels[mask]
                 task_targets = targets[mask]
 
-                log_dict[f"val_acc1_task{task_idx+1}"] = np.mean(task_predicted_labels == task_targets)
+                log_dict[f"{self.classifier_name} val_acc1_task{task_idx+1}"] = np.mean(task_predicted_labels == task_targets)
 
             if self.metrics_logger is not None:
                 self.continual_logger(
@@ -42,14 +44,14 @@ class BaseClassifier(LightningModule):
                     tasks=tasks, 
                     split="val"
                 )
-                log_dict["Accuracy"] = self.metrics_logger.accuracy
-                log_dict["Ave. Accuracy"] = self.metrics_logger.average_accuracy
-                log_dict["AIC"] = self.metrics_logger.average_incremental_accuracy
-                log_dict["BWT"] = self.metrics_logger.backward_transfer
-                log_dict["FWT"] = self.metrics_logger.forward_transfer
-                log_dict["PBWT"] = self.metrics_logger.positive_backward_transfer
-                log_dict["Remembering"] = self.metrics_logger.remembering
-                log_dict["Forgetting"] = self.metrics_logger.forgetting
+                log_dict[f"{self.classifier_name} Accuracy"] = self.metrics_logger.accuracy
+                log_dict[f"{self.classifier_name} Ave. Accuracy"] = self.metrics_logger.average_accuracy
+                log_dict[f"{self.classifier_name} AIC"] = self.metrics_logger.average_incremental_accuracy
+                log_dict[f"{self.classifier_name} BWT"] = self.metrics_logger.backward_transfer
+                log_dict[f"{self.classifier_name} FWT"] = self.metrics_logger.forward_transfer
+                log_dict[f"{self.classifier_name} PBWT"] = self.metrics_logger.positive_backward_transfer
+                log_dict[f"{self.classifier_name} Remembering"] = self.metrics_logger.remembering
+                log_dict[f"{self.classifier_name} Forgetting"] = self.metrics_logger.forgetting
                 
                 self.metrics_logger.end_epoch()
 
@@ -104,5 +106,9 @@ class BaseClassifier(LightningModule):
         }
 
         return [optimizer], [scheduler]
+
+    def append_train_features(self, features: Tensor, targets: Tensor) -> None:
+        self._train_features.append(features)
+        self._train_targets.append(targets)
 
     

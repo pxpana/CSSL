@@ -16,6 +16,7 @@ class NCMClassifier(
         self.num_tasks = kwargs.pop("num_tasks", None)
         kwargs["knn_k"] = None  # NCM does not use k-nearest neighbors
         kwargs["knn_t"] = None  # NCM does not use temperature scaling
+        self.classifier_name = "NCM"
         super().__init__(*args, **kwargs)
         
         self._class_means = None
@@ -69,8 +70,11 @@ class NCMClassifier(
         return similarities
 
     def validation_step(self, batch, batch_idx: int, dataloader_idx: int) -> None:
-        images, targets, tasks = batch[0], batch[1], batch[2]
-        features = self(images)
+        if self.model is None:
+            features, targets, tasks = batch[0], batch[1], batch[2]
+        else:
+            images, targets, tasks = batch[0], batch[1], batch[2]
+            features = self(images)
 
         if dataloader_idx == 0:
             # The first dataloader is the training dataloader.

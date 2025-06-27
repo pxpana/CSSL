@@ -14,6 +14,7 @@ class LinearClassifier(
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
         self.num_tasks = kwargs.pop("num_tasks", None)
+        self.classifier_name = "Linear"
         super().__init__(*args, **kwargs)
 
     def shared_step(

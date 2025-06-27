@@ -30,8 +30,6 @@ optimizer:
 
 temperature: 0.2
 
-use_online_classifier: True
-
 test_batch_size: 128
 test_accumulate_grad_batches: 1
 test_epochs: 100

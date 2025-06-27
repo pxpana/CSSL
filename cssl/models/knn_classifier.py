@@ -16,11 +16,15 @@ class KNNClassifier(
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
         self.num_tasks = kwargs.pop("num_tasks", None)
+        self.classifier_name = "KNN"
         super().__init__(*args, **kwargs)
 
     def validation_step(self, batch, batch_idx: int, dataloader_idx: int) -> None:
-        images, targets, tasks = batch[0], batch[1], batch[2]
-        features = self(images)
+        if self.model is None:
+            features, targets, tasks = batch[0], batch[1], batch[2]
+        else:
+            images, targets, tasks = batch[0], batch[1], batch[2]
+            features = self(images)
 
         if dataloader_idx == 0:
             # The first dataloader is the training dataloader.
@@ -34,9 +38,9 @@ class KNNClassifier(
             assert self._train_targets_tensor is not None
 
             predicted_classes = knn_predict(
-                feature=features.cpu(),
-                feature_bank=self._train_features_tensor,
-                feature_labels=self._train_targets_tensor,
+                feature=features,
+                feature_bank=self._train_features_tensor.to(features.device),
+                feature_labels=self._train_targets_tensor.to(features.device),
                 num_classes=self.num_classes,
                 knn_k=self.knn_k,
                 knn_t=self.knn_t,

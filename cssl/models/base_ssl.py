@@ -4,12 +4,12 @@ from tqdm import tqdm
 from typing import List, Dict, Tuple
 from torch import Tensor
 from pytorch_lightning import LightningModule
+import pytorch_lightning as pl
 
 from lightly.models.utils import get_weight_decay_parameters
 from cssl.utils import LARS
 from torch.optim import SGD
 from lightly.utils.scheduler import CosineWarmupScheduler
-from lightly.utils.benchmarking import OnlineLinearClassifier
 
 from lightly.utils.benchmarking.topk import mean_topk_accuracy
 
@@ -36,15 +36,32 @@ class BaseSSL(LightningModule):
         self.name = config.model_name
         self.reference_batch_size = config.reference_batch_size
 
-        self.online_classifier = OnlineLinearClassifier(feature_dim=config.feature_dim, num_classes=config.num_classes)
-        self.classifier_learning_rate = config.optimizer["classifier_learning_rate"]
-
-        self.train_classifier_loader = classifier_loader["train"]
-        self.test_classifier_loader = classifier_loader["test"]
         self.metrics_loggers = loggers
         self.record_classifier_every_n_epochs = config.record_classifier_every_n_epochs
-        # initialize classifiers
-        self.init_classifiers()
+        self.num_tasks = config.num_tasks
+        
+        self.knn_classifier = KNNClassifier(
+            model=None,
+            num_classes=self.config.num_classes,
+            knn_k=self.config.knn_neighbours,
+            knn_t=self.config.knn_temperature,
+            logger=self.metrics_loggers["knn"],
+            num_tasks=self.num_tasks
+        )
+        self.ncm_classifier = NCMClassifier(
+            model=None,
+            num_classes=self.config.num_classes,
+            logger=self.metrics_loggers["ncm"],
+            num_tasks=self.num_tasks
+        )
+
+    def setup(self, stage):
+        self.knn_classifier.trainer = self.trainer
+        self.ncm_classifier.trainer = self.trainer
+        self.knn_classifier.log_dict = self.log_dict
+        self.ncm_classifier.log_dict = self.log_dict
+        
+        return super().setup(stage)
 
     def forward(self, x):
         features = self.backbone(x).flatten(start_dim=1)
@@ -52,98 +69,56 @@ class BaseSSL(LightningModule):
 
         output = {"features": features, "projection": z}
         return output
-
-    def validation_step(
-        self, batch: Tuple[Tensor, Tensor, List[str]], batch_idx: int
-    ) -> Tensor:
-        images, targets = batch[0], batch[1]
+    
+    def validation_step(self, batch, batch_idx, dataloader_idx: int = 0): 
+        images, targets, tasks  = batch[0], batch[1], batch[2]
         features = self.backbone(images).flatten(start_dim=1)
-        cls_loss, cls_log = self.online_classifier.validation_step(
-            (features.detach(), targets), batch_idx
-        )
+        batch = (features, targets, tasks)
+        
+        self.knn_classifier.validation_step(batch, batch_idx, dataloader_idx=dataloader_idx)
+        self.ncm_classifier.validation_step(batch, batch_idx, dataloader_idx=dataloader_idx)
 
-        self.log_dict(cls_log, prog_bar=True, sync_dist=True, batch_size=len(targets))
-        return cls_loss
-
-    def online_training_step(self, batch: Tuple[Tensor, Tensor, List[str]], batch_idx: int) -> Tensor:
-        images, targets = batch[0], batch[1]
-        features = self.backbone(images).flatten(start_dim=1)
-        cls_loss, cls_log = self.online_classifier.training_step(
-            (features.detach(), targets), batch_idx
-        )
-
-        self.log_dict(cls_log, prog_bar=True, sync_dist=True, batch_size=len(targets))
-        return cls_loss
     
     def on_validation_epoch_end(self):
-        if not self.trainer.sanity_checking and self.current_epoch%self.record_classifier_every_n_epochs==0:
-            with torch.no_grad():
-                '''
-                    Training KNN and NCM classifiers on the train set.
-                '''
-                for batch_idx, batch in enumerate(self.train_classifier_loader):
-                    batch[0] = batch[0].to(self.device)  # Ensure images are on the correct device
-                    self.knn_classifier.validation_step(batch, batch_idx, dataloader_idx=0)
+        if not self.trainer.sanity_checking:
+            self.knn_classifier.on_validation_epoch_end()
+            self.ncm_classifier.on_validation_epoch_end()
 
-                for batch_idx, batch in enumerate(self.train_classifier_loader):
-                    batch[0] = batch[0].to(self.device)  # Ensure images are on the correct device
-                    self.ncm_classifier.validation_step(batch, batch_idx, dataloader_idx=0)
+        # if not self.trainer.sanity_checking and self.current_epoch%self.record_classifier_every_n_epochs==0:
+        #     with torch.no_grad():
+        #         knn_trainer = pl.Trainer(
+        #             max_epochs=1, 
+        #             accelerator=self.trainer.accelerator,
+        #             enable_checkpointing=False,
+        #             logger=False,
+        #             enable_model_summary=False,
+        #             num_sanity_val_steps=0,
+        #             enable_progress_bar=False,
+        #         )
+        #         knn_trainer.validate(self.knn_classifier, [self.train_classifier_loader, self.test_classifier_loader])
+        #         knn_results = knn_trainer.callback_metrics
 
-                '''
-                    Prediction using KNN and NCM classifiers on the test set.
-                '''
+        #         ncm_trainer = pl.Trainer(
+        #             max_epochs=1, 
+        #             accelerator=self.trainer.accelerator,
+        #             enable_checkpointing=False,
+        #             logger=False,
+        #             enable_model_summary=False,
+        #             num_sanity_val_steps=0,
+        #             enable_progress_bar=False,
+        #         )
+        #         ncm_trainer.validate(self.ncm_classifier, [self.train_classifier_loader, self.test_classifier_loader])
+        #         ncm_results = ncm_trainer.callback_metrics
 
-                for batch_idx, batch in enumerate(self.test_classifier_loader):
-                    batch[0] = batch[0].to(self.device)  # Ensure images are on the correct device
-                    self.knn_classifier.validation_step(batch, batch_idx, dataloader_idx=1)
 
-                for batch_idx, batch in enumerate(self.test_classifier_loader):
-                    batch[0] = batch[0].to(self.device)  # Ensure images are on the correct device
-                    self.ncm_classifier.validation_step(batch, batch_idx, dataloader_idx=1)
+        #     # log results
+        #     self.log_dict(knn_results, sync_dist=True, prog_bar=True)
+        #     self.log_dict(ncm_results, sync_dist=True, prog_bar=True)
 
-            # log results
-            self.log_dict({
-                "knn_Accuracy": self.knn_classifier.metrics_logger.accuracy,
-                "knn_Ave_Accuracy": self.knn_classifier.metrics_logger.average_accuracy,
-                f"knn_AIC": self.knn_classifier.metrics_logger.average_incremental_accuracy,
-                f"knn_BWT": self.knn_classifier.metrics_logger.backward_transfer,
-                "knn_FWT": self.knn_classifier.metrics_logger.forward_transfer,
-                f"knn_PBWT": self.knn_classifier.metrics_logger.positive_backward_transfer,
-                f"knn_Remembering": self.knn_classifier.metrics_logger.remembering,
-                "knn_Forgetting": self.knn_classifier.metrics_logger.forgetting,
-            }, sync_dist=True, prog_bar=True)
-
-            self.log_dict({
-                "ncm_Accuracy": self.ncm_classifier.metrics_logger.accuracy,
-                "ncm_Ave_Accuracy": self.ncm_classifier.metrics_logger.average_accuracy,
-                f"ncm_AIC": self.ncm_classifier.metrics_logger.average_incremental_accuracy,
-                f"ncm_BWT": self.ncm_classifier.metrics_logger.backward_transfer,
-                "ncm_FWT": self.ncm_classifier.metrics_logger.forward_transfer,
-                f"ncm_PBWT": self.ncm_classifier.metrics_logger.positive_backward_transfer,
-                f"ncm_Remembering": self.ncm_classifier.metrics_logger.remembering,
-                "ncm_Forgetting": self.ncm_classifier.metrics_logger.forgetting,
-            }, sync_dist=True, prog_bar=True)
-
-            # reinitialize classifiers
-            self.init_classifiers()
+        #     # reinitialize classifiers
+        #     self.init_classifiers()
 
         return super().on_validation_epoch_end()
-
-    def init_classifiers(self):
-        self.knn_classifier = KNNClassifier(
-            model=self.backbone,
-            num_classes=self.config.num_classes,
-            knn_k=self.config.knn_neighbours,
-            knn_t=self.config.knn_temperature,
-            logger=self.metrics_loggers["knn"]
-        )
-        self.ncm_classifier = NCMClassifier(
-            model=self.backbone,
-            num_classes=self.config.num_classes,
-            logger=self.metrics_loggers["ncm"]
-        )
-
-
 
     def get_effective_lr(self) -> float:
         """Compute the effective learning rate based on batch size and world size."""
@@ -165,12 +140,6 @@ class BaseSSL(LightningModule):
                     {
                         "name": f"{self.name}_no_weight_decay",
                         "params": params_no_weight_decay,
-                        "weight_decay": 0.0,
-                    },
-                    {
-                        "name": f"{self.name}_online_classifier",
-                        "params": self.online_classifier.parameters(),
-                        "lr": self.classifier_learning_rate,
                         "weight_decay": 0.0,
                     },
                 ], 

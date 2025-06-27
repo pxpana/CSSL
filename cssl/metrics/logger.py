@@ -16,26 +16,17 @@ from cssl.models import LinearClassifier
 from cssl.models import KNNClassifier
 from cssl.models import NCMClassifier
 
+from rich import print
+
 class Logger(continuum_Logger):
     def __init__(
             self, 
-            args, 
-            train_classifier_loader,
-            test_classifier_loader,
+            random_init_accuracies, 
             list_keywords=["performance"], root_log=None,
         ):
         super().__init__(list_keywords=list_keywords, root_log=root_log)
 
-        random_classifiers = get_random_classifiers(args.num_tasks, args.num_classes, args.feature_dim)
-
-        self.random_init_accuracies = get_random_init_accuracies(
-            random_classifiers,
-            train_classifier_loader, 
-            test_classifier_loader, 
-            num_tasks=args.num_tasks, 
-            device=args.accelerator,
-            args=args,
-        )
+        self.random_init_accuracies = random_init_accuracies
 
     @property
     @require_subset("test")
@@ -118,6 +109,7 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
         knn_classifier = random_classifiers["knn"]
         ncm_classifier = random_classifiers["ncm"]
 
+        print("[bold magenta]LINEAR: Evaluating random initialization accuracies...[/bold magenta]")
         trainer = pl.Trainer(
             max_epochs=1, 
             accelerator=args.accelerator,
@@ -126,13 +118,15 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
             strategy=args.strategy,
             precision=args.precision,
             sync_batchnorm=args.sync_batchnorm,
+            logger=False
         )
         trainer.validate(linear_classifier, test_classifier_loader)
         results = trainer.callback_metrics
         random_init_accuracies["linear"] = [
-            results[f"val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+            results[f"Linear val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
         ]
 
+        print("[bold magenta]KNN: Evaluating random initialization accuracies...[/bold magenta]")
         trainer = pl.Trainer(
             max_epochs=1, 
             accelerator=args.accelerator,
@@ -141,13 +135,15 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
             strategy=args.strategy,
             precision=args.precision,
             sync_batchnorm=args.sync_batchnorm,
+            logger=False
         )
         trainer.validate(knn_classifier, [train_classifier_loader, test_classifier_loader])
         results = trainer.callback_metrics
         random_init_accuracies["knn"] = [
-            results[f"val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+            results[f"KNN val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
         ]
 
+        print("[bold magenta]NCM: Evaluating random initialization accuracies...[/bold magenta]")
         trainer = pl.Trainer(
             max_epochs=1, 
             accelerator=args.accelerator,
@@ -156,16 +152,15 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
             strategy=args.strategy,
             precision=args.precision,
             sync_batchnorm=args.sync_batchnorm,
+            logger=False
         )
         trainer.validate(ncm_classifier, [train_classifier_loader, test_classifier_loader])
         results = trainer.callback_metrics
         random_init_accuracies["ncm"] = [
-            results[f"val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+            results[f"NCM val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
         ]
 
-    print(f"Random init accuracies: {random_init_accuracies}")
-
-    return np.array(random_init_accuracies)
+    return random_init_accuracies
 
 def get_random_classifiers(num_tasks, num_classes, feature_dim):
 
