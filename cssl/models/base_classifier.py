@@ -22,38 +22,39 @@ class BaseClassifier(LightningModule):
 
     def on_validation_epoch_end(self):
         if not self.trainer.sanity_checking:
-            self.continual_logger(
-                predicted_labels=np.array(self.predicted_labels), 
-                targets=np.array(self.targets), 
-                tasks=np.array(self.tasks), 
-                split="val"
-            )
-            log_dict = {
-                f"Accuracy": self.metrics_logger.accuracy,
-                f"Ave. Accuracy": self.metrics_logger.average_accuracy,
-                # f"Accuracy 1:t": np.mean(np.array(self.metrics_logger.accuracy_per_task)[:(self.metrics_logger.current_task+1)]),
-                # f"Accuracy 1:T": np.mean(np.array(self.metrics_logger.accuracy_per_task)),
-                # f"AIC": self.metrics_logger.average_incremental_accuracy,
-                # f"BWT": self.metrics_logger.backward_transfer,
-                f"FWT": self.metrics_logger.forward_transfer,
-                # f"PBWT": self.metrics_logger.positive_backward_transfer,
-                # f"Remembering": self.metrics_logger.remembering,
-                f"Forgetting": self.metrics_logger.forgetting,
-            }
-            self.metrics_logger.end_epoch()
-            
+            log_dict = {}
+
             predicted_labels = np.array(self.predicted_labels)
             targets = np.array(self.targets)
             tasks = np.array(self.tasks)
 
-            for task_idx in range(5):
+            for task_idx in range(self.num_tasks):
                 mask = task_idx==tasks
                 task_predicted_labels = predicted_labels[mask]
                 task_targets = targets[mask]
 
-                log_dict[f"val_acc1_task{task_idx}"] = np.mean(task_predicted_labels == task_targets)
+                log_dict[f"val_acc1_task{task_idx+1}"] = np.mean(task_predicted_labels == task_targets)
+
+            if self.metrics_logger is not None:
+                self.continual_logger(
+                    predicted_labels=predicted_labels, 
+                    targets=targets, 
+                    tasks=tasks, 
+                    split="val"
+                )
+                log_dict["Accuracy"] = self.metrics_logger.accuracy
+                log_dict["Ave. Accuracy"] = self.metrics_logger.average_accuracy
+                log_dict["AIC"] = self.metrics_logger.average_incremental_accuracy
+                log_dict["BWT"] = self.metrics_logger.backward_transfer
+                log_dict["FWT"] = self.metrics_logger.forward_transfer
+                log_dict["PBWT"] = self.metrics_logger.positive_backward_transfer
+                log_dict["Remembering"] = self.metrics_logger.remembering
+                log_dict["Forgetting"] = self.metrics_logger.forgetting
+                
+                self.metrics_logger.end_epoch()
 
             self.log_dict(log_dict, sync_dist=True, prog_bar=True)
+
         self.predicted_labels = []
         self.targets = []
         self.tasks = []
@@ -61,13 +62,18 @@ class BaseClassifier(LightningModule):
         return super().on_validation_epoch_end()
 
     def teardown(self, stage):
-        self.metrics_logger.end_task()
+        if self.metrics_logger is not None:
+            self.metrics_logger.end_task()
 
         return super().teardown(stage)
 
+    def store_val_predictions(self, predicted_labels, targets, tasks):
+        self.predicted_labels.extend(predicted_labels.detach().cpu().tolist())
+        self.targets.extend(targets.detach().cpu().tolist())
+        self.tasks.extend(tasks.detach().cpu().tolist())
 
     def continual_logger(self, predicted_labels, targets, tasks, split):
-        if split=="val":
+        if split=="val" and self.metrics_logger is not None:
             self.metrics_logger.add(
                 [
                     predicted_labels, 

@@ -103,17 +103,25 @@ class BaseSSL(LightningModule):
 
             # log results
             self.log_dict({
-                "knn_accuracy": self.knn_classifier.metrics_logger.accuracy,
-                "knn_average_accuracy": self.knn_classifier.metrics_logger.average_accuracy,
-                "knn_forward_transfer": self.knn_classifier.metrics_logger.forward_transfer,
-                "knn_forgetting": self.knn_classifier.metrics_logger.forgetting,
+                "knn_Accuracy": self.knn_classifier.metrics_logger.accuracy,
+                "knn_Ave_Accuracy": self.knn_classifier.metrics_logger.average_accuracy,
+                f"knn_AIC": self.knn_classifier.metrics_logger.average_incremental_accuracy,
+                f"knn_BWT": self.knn_classifier.metrics_logger.backward_transfer,
+                "knn_FWT": self.knn_classifier.metrics_logger.forward_transfer,
+                f"knn_PBWT": self.knn_classifier.metrics_logger.positive_backward_transfer,
+                f"knn_Remembering": self.knn_classifier.metrics_logger.remembering,
+                "knn_Forgetting": self.knn_classifier.metrics_logger.forgetting,
             }, sync_dist=True, prog_bar=True)
 
             self.log_dict({
-                "ncm_accuracy": self.ncm_classifier.metrics_logger.accuracy,
-                "ncm_average_accuracy": self.ncm_classifier.metrics_logger.average_accuracy,
-                "ncm_forward_transfer": self.ncm_classifier.metrics_logger.forward_transfer,
-                "ncm_forgetting": self.ncm_classifier.metrics_logger.forgetting,
+                "ncm_Accuracy": self.ncm_classifier.metrics_logger.accuracy,
+                "ncm_Ave_Accuracy": self.ncm_classifier.metrics_logger.average_accuracy,
+                f"ncm_AIC": self.ncm_classifier.metrics_logger.average_incremental_accuracy,
+                f"ncm_BWT": self.ncm_classifier.metrics_logger.backward_transfer,
+                "ncm_FWT": self.ncm_classifier.metrics_logger.forward_transfer,
+                f"ncm_PBWT": self.ncm_classifier.metrics_logger.positive_backward_transfer,
+                f"ncm_Remembering": self.ncm_classifier.metrics_logger.remembering,
+                "ncm_Forgetting": self.ncm_classifier.metrics_logger.forgetting,
             }, sync_dist=True, prog_bar=True)
 
             # reinitialize classifiers

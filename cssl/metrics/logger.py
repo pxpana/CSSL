@@ -10,23 +10,30 @@ from continuum.metrics.utils import require_subset
 from torchvision.models import resnet18
 from torch.utils.data import DataLoader
 
+import pytorch_lightning as pl
+
+from cssl.models import LinearClassifier
+from cssl.models import KNNClassifier
+from cssl.models import NCMClassifier
+
 class Logger(continuum_Logger):
     def __init__(
             self, 
-            random_classifiers, 
             args, 
+            train_classifier_loader,
             test_classifier_loader,
-            class_increment,
             list_keywords=["performance"], root_log=None,
         ):
         super().__init__(list_keywords=list_keywords, root_log=root_log)
 
+        random_classifiers = get_random_classifiers(args.num_tasks, args.num_classes, args.feature_dim)
+
         self.random_init_accuracies = get_random_init_accuracies(
-            random_classifiers, 
+            random_classifiers,
+            train_classifier_loader, 
             test_classifier_loader, 
             num_tasks=args.num_tasks, 
             device=args.accelerator,
-            class_increment=class_increment,
             args=args,
         )
 
@@ -35,12 +42,6 @@ class Logger(continuum_Logger):
     def average_accuracy(self):
         all_preds, all_targets, task_ids = self._get_best_epochs(subset="test")
         return average_accuracy(all_preds, all_targets, task_ids)
-    
-    # @property
-    # @require_subset("test")
-    # def forgetting(self):
-    #     all_preds, all_targets, task_ids = self._get_best_epochs(subset="test")
-    #     return forgetting(all_preds, all_targets, task_ids, self.current_task)
 
     @property
     @require_subset("test")
@@ -75,36 +76,6 @@ def average_accuracy(all_preds, all_targets, all_tasks):
     assert 0.0 <= metric <= 1.0, metric
     return metric
 
-def forgetting(all_preds, all_targets, all_tasks, current_task):
-    """Measures the average forgetting.
-
-    Reference:
-    * Riemannian Walk for Incremental Learning: Understanding Forgetting and Intransigence
-      Chaudhry et al. ECCV 2018
-
-    See eq. 3.
-    """
-    T = current_task+1  # Number of seen tasks so far
-    # TODO if we take in account zeroshot, we should take the max of all_tasks?
-    if T <= 1:
-        return 0.0
-
-    f = 0.0
-    for j in range(T-1):
-        # Accuracy on task j after learning current task k
-        a_kj = _get_R_ij(T-1, j, all_preds, all_targets, all_tasks)
-        # Best previous accuracy on task j
-        max_a_lj = max(
-            _get_R_ij(l, j, all_preds, all_targets, all_tasks)
-            for l in range(T)
-            if l >= j
-        )
-        f += max_a_lj - a_kj  # We want this results to be as low as possible
-
-    metric = f / (T-1)
-    assert -1.0 <= metric <= 1.0, metric
-    return metric
-
 def forward_transfer(all_preds, all_targets, all_tasks, current_task, random_init_accuracies):
     """Measures the influence that learning a task has on the performance of future tasks.
 
@@ -132,54 +103,105 @@ def forward_transfer(all_preds, all_targets, all_tasks, current_task, random_ini
     assert -1.0 <= metric <= 1.0, metric
     return metric 
 
-def get_random_init_accuracies(random_classifiers, test_classifier_loader, num_tasks, device, class_increment, args):
+def get_random_init_accuracies(random_classifiers, train_classifier_loader, test_classifier_loader, num_tasks, device, args):
     device = device.lower()
     device = "cuda" if device in ["gpu", "cuda"] else "cpu"
 
     with torch.no_grad():
-        random_init_accuracies = [ [] for _ in range(num_tasks) ]
+        random_init_accuracies = {
+            "linear": [],
+            "knn": [],
+            "ncm": []
+        }
 
-        for task_id in range(num_tasks):
-            model = random_classifiers[task_id]
-            model.to(device)
-            model.eval()
+        linear_classifier = random_classifiers["linear"]
+        knn_classifier = random_classifiers["knn"]
+        ncm_classifier = random_classifiers["ncm"]
 
-            for batch in tqdm(test_classifier_loader, desc=f"Calculating random init accuracies for task {task_id+1}"):
-                images, targets, task_ids = batch[0], batch[1], batch[2]
-                predictions = model(images.to(device))
-                _, predicted_labels = predictions.topk(1)
+        trainer = pl.Trainer(
+            max_epochs=1, 
+            accelerator=args.accelerator,
+            devices=args.gpu_devices,
+            enable_checkpointing=False,
+            strategy=args.strategy,
+            precision=args.precision,
+            sync_batchnorm=args.sync_batchnorm,
+        )
+        trainer.validate(linear_classifier, test_classifier_loader)
+        results = trainer.callback_metrics
+        random_init_accuracies["linear"] = [
+            results[f"val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+        ]
 
-                predicted_labels = predicted_labels.flatten() + (class_increment*task_id)
-                correct = predicted_labels == targets.to(device)
+        trainer = pl.Trainer(
+            max_epochs=1, 
+            accelerator=args.accelerator,
+            devices=args.gpu_devices,
+            enable_checkpointing=False,
+            strategy=args.strategy,
+            precision=args.precision,
+            sync_batchnorm=args.sync_batchnorm,
+        )
+        trainer.validate(knn_classifier, [train_classifier_loader, test_classifier_loader])
+        results = trainer.callback_metrics
+        random_init_accuracies["knn"] = [
+            results[f"val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+        ]
 
-                for task_idx in range(num_tasks):
-                    mask_task = task_idx == task_ids
-                    mask_correct = correct[mask_task]
-                    
-                    random_init_accuracies[task_id].extend(mask_correct.cpu().tolist())
-        random_init_accuracies = [np.mean(np.array(acc)) for acc in random_init_accuracies]
+        trainer = pl.Trainer(
+            max_epochs=1, 
+            accelerator=args.accelerator,
+            devices=args.gpu_devices,
+            enable_checkpointing=False,
+            strategy=args.strategy,
+            precision=args.precision,
+            sync_batchnorm=args.sync_batchnorm,
+        )
+        trainer.validate(ncm_classifier, [train_classifier_loader, test_classifier_loader])
+        results = trainer.callback_metrics
+        random_init_accuracies["ncm"] = [
+            results[f"val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+        ]
 
     print(f"Random init accuracies: {random_init_accuracies}")
 
     return np.array(random_init_accuracies)
 
-def get_random_classifiers(num_tasks, class_increment, feature_dim, seed):
+def get_random_classifiers(num_tasks, num_classes, feature_dim):
 
-    random_classifiers = []
-    for i in range(num_tasks):
-        torch.manual_seed(seed*i)
+    random_classifiers = {"linear": [], "knn": [], "ncm": []}
         
-        backbone = resnet18(pretrained=False)
-        backbone.fc = torch.nn.Identity()
-        backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
-        backbone.maxpool = torch.nn.Identity()
+    backbone = resnet18(pretrained=False)
+    backbone.fc = torch.nn.Identity()
+    backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
+    backbone.maxpool = torch.nn.Identity()
 
-        model = nn.Sequential(
-            backbone,
-            nn.Linear(feature_dim, class_increment)
-        )
+    linear_classifier = LinearClassifier(
+        model=backbone,
+        batch_size_per_device=None,
+        lr=None,
+        feature_dim=feature_dim,
+        num_classes=num_classes,
+        num_tasks=num_tasks,
+    )
 
-        random_classifiers.append(model)
+    knn_classifier = KNNClassifier(
+        model=backbone,
+        num_classes=num_classes,
+        knn_k=200,
+        knn_t=0.1,
+        num_tasks=num_tasks,
+    )
+
+    ncm_classifier = NCMClassifier(
+        model=backbone,
+        num_classes=num_classes,
+        num_tasks=num_tasks,
+    )
+
+    random_classifiers["linear"] = linear_classifier
+    random_classifiers["knn"] = knn_classifier
+    random_classifiers["ncm"] = ncm_classifier
 
     return random_classifiers
 

@@ -13,6 +13,7 @@ class LinearClassifier(
 ):
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
+        self.num_tasks = kwargs.pop("num_tasks", None)
         super().__init__(*args, **kwargs)
 
     def shared_step(
@@ -34,9 +35,7 @@ class LinearClassifier(
         )
 
         if split == "val":
-            self.predicted_labels.extend(predicted_labels.detach().cpu().tolist())
-            self.targets.extend(targets.detach().cpu().tolist())
-            self.tasks.extend(tasks.detach().cpu().tolist())
+            self.store_val_predictions(predicted_labels, targets, tasks)
 
         return loss
 

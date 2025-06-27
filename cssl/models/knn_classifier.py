@@ -15,6 +15,7 @@ class KNNClassifier(
 ):
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
+        self.num_tasks = kwargs.pop("num_tasks", None)
         super().__init__(*args, **kwargs)
 
     def validation_step(self, batch, batch_idx: int, dataloader_idx: int) -> None:
@@ -41,7 +42,7 @@ class KNNClassifier(
                 knn_t=self.knn_t,
             )
 
-            self.continual_logger(predicted_classes[:, 0], targets, tasks, split="val")
+            self.store_val_predictions(predicted_classes[:, 0], targets, tasks)
 
     def concat_train_features(self) -> None:
         if self._train_features and self._train_targets:

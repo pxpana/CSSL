@@ -20,8 +20,6 @@ def main(args):
     class_increment = int(args.num_classes / args.num_tasks)
 
     # initialize random classifiers equal to the number of tasks for FWT metric
-    random_classifiers = get_random_classifiers(args.num_tasks, class_increment, args.feature_dim, seed=42)
-
     for scenario_id in tqdm(seeds, desc="Scenerio"):
 
         seed_everything(scenario_id)
@@ -51,10 +49,9 @@ def main(args):
             os.makedirs(f"logs/{args.model_name}_knn_{args.dataset}_{args.num_tasks}")
             os.makedirs(f"logs/{args.model_name}_ncm_{args.dataset}_{args.num_tasks}")
         logger = Logger(
-            random_classifiers=random_classifiers,
             args=args,
+            train_classifier_loader=train_classifier_loader,
             test_classifier_loader=test_classifier_loader,
-            class_increment=class_increment,
             list_keywords=["performance"],
             root_log=f"logs/{args.model_name}_linear_{args.dataset}_{args.num_tasks}"
         )
@@ -104,8 +101,8 @@ def main(args):
             pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(args, training_type="pretrain", task_id=task_id, scenario_id=scenario_id)
             _, classifier_wandb_logger = get_callbacks_logger(args, training_type="classifier", task_id=task_id, scenario_id=scenario_id)
 
-            if task_id>0:
-                model = get_model(model.backbone, args)
+            # if task_id>0:
+            #     model = get_model(model.backbone, args)
 
             activate_requires_grad(model.backbone)
 

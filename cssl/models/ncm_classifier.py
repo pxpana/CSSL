@@ -13,6 +13,7 @@ class NCMClassifier(
 ):
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
+        self.num_tasks = kwargs.pop("num_tasks", None)
         kwargs["knn_k"] = None  # NCM does not use k-nearest neighbors
         kwargs["knn_t"] = None  # NCM does not use temperature scaling
         super().__init__(*args, **kwargs)
@@ -83,4 +84,4 @@ class NCMClassifier(
             predicted_scores = self.ncm_predict(features=features)
             _, predicted_classes = predicted_scores.topk(max(self.topk))
 
-            self.continual_logger(predicted_classes[:, 0], targets, tasks, split="val")
+            self.store_val_predictions(predicted_classes[:, 0], targets, tasks)
