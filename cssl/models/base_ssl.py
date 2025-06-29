@@ -1,5 +1,6 @@
 import math
 import torch
+import torch.nn.functional as F
 from tqdm import tqdm
 from typing import List, Dict, Tuple
 from torch import Tensor
@@ -73,6 +74,7 @@ class BaseSSL(LightningModule):
     def validation_step(self, batch, batch_idx, dataloader_idx: int = 0): 
         images, targets, tasks  = batch[0], batch[1], batch[2]
         features = self.backbone(images).flatten(start_dim=1)
+        features = F.normalize(features, dim=1)
         batch = (features, targets, tasks)
         
         self.knn_classifier.validation_step(batch, batch_idx, dataloader_idx=dataloader_idx)
@@ -83,40 +85,6 @@ class BaseSSL(LightningModule):
         if not self.trainer.sanity_checking:
             self.knn_classifier.on_validation_epoch_end()
             self.ncm_classifier.on_validation_epoch_end()
-
-        # if not self.trainer.sanity_checking and self.current_epoch%self.record_classifier_every_n_epochs==0:
-        #     with torch.no_grad():
-        #         knn_trainer = pl.Trainer(
-        #             max_epochs=1, 
-        #             accelerator=self.trainer.accelerator,
-        #             enable_checkpointing=False,
-        #             logger=False,
-        #             enable_model_summary=False,
-        #             num_sanity_val_steps=0,
-        #             enable_progress_bar=False,
-        #         )
-        #         knn_trainer.validate(self.knn_classifier, [self.train_classifier_loader, self.test_classifier_loader])
-        #         knn_results = knn_trainer.callback_metrics
-
-        #         ncm_trainer = pl.Trainer(
-        #             max_epochs=1, 
-        #             accelerator=self.trainer.accelerator,
-        #             enable_checkpointing=False,
-        #             logger=False,
-        #             enable_model_summary=False,
-        #             num_sanity_val_steps=0,
-        #             enable_progress_bar=False,
-        #         )
-        #         ncm_trainer.validate(self.ncm_classifier, [self.train_classifier_loader, self.test_classifier_loader])
-        #         ncm_results = ncm_trainer.callback_metrics
-
-
-        #     # log results
-        #     self.log_dict(knn_results, sync_dist=True, prog_bar=True)
-        #     self.log_dict(ncm_results, sync_dist=True, prog_bar=True)
-
-        #     # reinitialize classifiers
-        #     self.init_classifiers()
 
         return super().on_validation_epoch_end()
 

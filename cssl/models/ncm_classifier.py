@@ -27,10 +27,6 @@ class NCMClassifier(
 
     def concat_train_features(self) -> None:
         if self._train_features and self._train_targets:
-            # Features and targets have size (world_size, batch_size, dim) and
-            # (world_size, batch_size) after gather. For non-distributed training,
-            # features and targets have size (batch_size, dim) and (batch_size,).
-
             features = torch.cat(self._train_features, dim=0)
             self._train_features = []
             targets = torch.cat(self._train_targets, dim=0)
