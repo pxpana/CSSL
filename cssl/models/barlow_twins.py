@@ -19,8 +19,8 @@ from cssl.loss import BarlowTwinsLoss
 from cssl.models.base_ssl import BaseSSL
 
 class BarlowTwins(BaseSSL):
-    def __init__(self, backbone, config=None):
-        super().__init__(backbone, config)
+    def __init__(self, backbone, config=None, *args, **kwargs):
+        super().__init__(backbone, config, *args, **kwargs)
 
         self.projection_head = BarlowTwinsProjectionHead(
             input_dim=config.feature_dim, 

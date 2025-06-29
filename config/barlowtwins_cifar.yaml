@@ -29,7 +29,7 @@ test_epochs: 100
 optimizer:
   name: "lars"
   train_learning_rate: 0.3
-  classifier_learning_rate: 0.1
+  classifier_learning_rate: 0.004
   weight_decay: 1.0e-4
 
 num_workers: 8
@@ -50,6 +50,10 @@ sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
 precision: 16-mixed
+
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
 
 # Hard defaults
 reference_batch_size: 256

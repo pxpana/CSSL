@@ -1,32 +1,32 @@
 import torch
 import lightly
 
-def get_model(backbone, config, loggers, classifier_loader):
+def get_model(backbone, config, loggers):
     name = config.model_name.lower()
     if name == "simclr":
         from cssl.models import SimCLR
-        model = SimCLR(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
+        model = SimCLR(backbone=backbone, config=config, loggers=loggers)
     elif name == "mocov2":
         from cssl.models import MoCov2
-        model = MoCov2(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
+        model = MoCov2(backbone=backbone, config=config, loggers=loggers)
     elif name == "mocov2plus":
         from cssl.models import MoCov2Plus
-        model = MoCov2Plus(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
+        model = MoCov2Plus(backbone=backbone, config=config, loggers=loggers)
     elif name == "byol":
         from cssl.models import BYOL
-        model = BYOL(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
+        model = BYOL(backbone=backbone, config=config, loggers=loggers)
     elif name == "barlowtwins":
         from cssl.models import BarlowTwins
-        model = BarlowTwins(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
+        model = BarlowTwins(backbone=backbone, config=config, loggers=loggers)
     elif name == "simsiam":
         from cssl.models import SimSiam
-        model = SimSiam(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
+        model = SimSiam(backbone=backbone, config=config, loggers=loggers)
     elif name == "vicreg":
         from cssl.models import VICReg
-        model = VICReg(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
+        model = VICReg(backbone=backbone, config=config, loggers=loggers)
     elif name == "swav":
         from cssl.models import SwAV
-        model = SwAV(backbone=backbone, config=config, loggers=loggers, classifier_loader=classifier_loader)
+        model = SwAV(backbone=backbone, config=config, loggers=loggers)
 
     return model
 

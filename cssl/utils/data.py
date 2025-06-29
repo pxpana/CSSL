@@ -215,16 +215,9 @@ def get_pretrain_transform(args):
             solarization_prob=args.solarization[1],
         )
 
-    if name == "simclr":
-        from lightly.transforms import SimCLRTransform
+    if name in ["simclr", "byol", "barlowtwins", "mocov2plus"]:
         from lightly.transforms.multi_view_transform import MultiViewTransform
         transform = MultiViewTransform([dataset_transform1, dataset_transform2])
-    elif name == "mocov2plus":
-        from lightly.transforms import MoCoV2Transform
-        transform = MoCoV2Transform(input_size=args.image_dim, gaussian_blur=0.5)
-    elif name in ["byol", "barlowtwins"]:
-        from lightly.transforms import BYOLTransform
-        transform = BYOLTransform(dataset_transform1, dataset_transform2)
     elif name == "simsiam":
         from lightly.transforms import SimSiamTransform
         transform = SimSiamTransform(input_size=args.image_dim)

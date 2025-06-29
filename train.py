@@ -85,8 +85,7 @@ def main(args):
         model = get_model(
             backbone=backbone, 
             config=args,  
-            loggers=loggers, 
-            classifier_loader={"train": train_classifier_loader, "test": test_classifier_loader}
+            loggers=loggers
         )
 
         for task_id, train_dataset in tqdm(enumerate(data_manager.train_pretrain_scenario), desc="Training tasks"):
@@ -102,9 +101,6 @@ def main(args):
 
             pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(args, training_type="pretrain", task_id=task_id, scenario_id=scenario_id)
             _, classifier_wandb_logger = get_callbacks_logger(args, training_type="classifier", task_id=task_id, scenario_id=scenario_id)
-
-            # if task_id>0:
-            #     model = get_model(model.backbone, args)
 
             activate_requires_grad(model.backbone)
 

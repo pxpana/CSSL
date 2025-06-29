@@ -18,8 +18,8 @@ from lightly.utils.scheduler import cosine_schedule
 from cssl.models.base_ssl import BaseSSL
 
 class MoCov2Plus(BaseSSL):
-    def __init__(self, backbone, config=None):
-        super().__init__(backbone, config)
+    def __init__(self, backbone, config=None, *args, **kwargs):
+        super().__init__(backbone, config, *args, **kwargs)
 
         self.projection_head = MoCoProjectionHead(
             input_dim=config.feature_dim, 
@@ -61,7 +61,7 @@ class MoCov2Plus(BaseSSL):
         return projections
 
     def training_step(self, batch, batch_idx):
-        view0, view1 = batch
+        view0, view1 = batch[0], batch[1]
 
         # Encode queries.
         query_projections0 = self.forward(view0)["projection"]

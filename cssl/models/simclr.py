@@ -6,7 +6,7 @@ from lightly.utils.debug import std_of_l2_normalized
 from cssl.models.base_ssl import BaseSSL
 
 class SimCLR(BaseSSL):
-    def __init__(self, backbone, config=None, *args,**kwargs):
+    def __init__(self, backbone, config=None, *args, **kwargs):
         super().__init__(backbone, config, *args, **kwargs)
 
         self.projection_head = SimCLRProjectionHead(
@@ -24,11 +24,8 @@ class SimCLR(BaseSSL):
     def training_step(self, batch, batch_index):
         view0, view1 = batch[0], batch[1]
 
-        out0 = self.forward(view0)
-        out1 = self.forward(view1)
-
-        z0 = out0["projection"]
-        z1 = out1["projection"]
+        z0 = self.forward(view0)["projection"]
+        z1 = self.forward(view1)["projection"]
 
         loss = self.criterion(z0, z1)
         representation_std = std_of_l2_normalized((z0 + z1) / 2)

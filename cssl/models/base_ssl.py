@@ -18,7 +18,7 @@ from cssl.models.knn_classifier import KNNClassifier
 from cssl.models.ncm_classifier import NCMClassifier
 
 class BaseSSL(LightningModule):
-    def __init__(self, backbone, config=None, loggers=None, classifier_loader=None):
+    def __init__(self, backbone, config=None, loggers=None):
         super().__init__()
 
         self.config = config
@@ -38,7 +38,6 @@ class BaseSSL(LightningModule):
         self.reference_batch_size = config.reference_batch_size
 
         self.metrics_loggers = loggers
-        self.record_classifier_every_n_epochs = config.record_classifier_every_n_epochs
         self.num_tasks = config.num_tasks
         
         self.knn_classifier = KNNClassifier(

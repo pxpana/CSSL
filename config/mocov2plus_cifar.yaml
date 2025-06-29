@@ -1,5 +1,5 @@
 model_name: "MoCov2Plus"
-
+split_strategy: "class"
 dataset: "cifar100"
 image_dim: 32
 
@@ -33,11 +33,19 @@ test_epochs: 100
 optimizer:
   name: "lars"
   train_learning_rate: 0.4
-  classifier_learning_rate: 0.3
+  classifier_learning_rate: 0.004
   weight_decay: 1.0e-4
 
 num_workers: 8
 set_float32_matmul_precision: "high"
+
+# Augmentations
+gaussian_blur: [0.5, 0.0]
+solarization: [0.0, 0.0]
+brightness: 0.8
+contrast: 0.8
+saturation: 0.8
+hue: 0.2
 
 # overwrite Pytorch Lightening default
 num_devices: 1
@@ -46,6 +54,10 @@ sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
 precision: 16-mixed
+
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
 
 # Hard defaults
 reference_batch_size: 256
