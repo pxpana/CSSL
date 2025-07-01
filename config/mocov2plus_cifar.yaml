@@ -26,14 +26,14 @@ train_batch_size: 256
 train_accumulate_grad_batches: 1
 train_epochs: 500
 
-test_batch_size: 256
+test_batch_size: 128
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
 optimizer:
   name: "lars"
   train_learning_rate: 0.4
-  classifier_learning_rate: 0.004
+  classifier_learning_rate: 0.04
   weight_decay: 1.0e-4
 
 num_workers: 8
@@ -47,6 +47,10 @@ contrast: 0.8
 saturation: 0.8
 hue: 0.2
 
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
+
 # overwrite Pytorch Lightening default
 num_devices: 1
 gpu_devices: [0]
@@ -54,10 +58,6 @@ sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
 precision: 16-mixed
-
-# Classifier parameters
-knn_neighbours: 200
-knn_temperature: 0.1
 
 # Hard defaults
 reference_batch_size: 256

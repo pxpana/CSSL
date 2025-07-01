@@ -45,6 +45,10 @@ contrast: 0.8
 saturation: 0.8
 hue: 0.2
 
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
+
 # overwrite Pytorch Lightening default
 num_devices: 1
 gpu_devices: [0]
@@ -52,10 +56,6 @@ sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
 precision: 16-mixed
-
-# Classifier parameters
-knn_neighbours: 200
-knn_temperature: 0.1
 
 # Hard defaults
 reference_batch_size: 256

@@ -17,8 +17,10 @@ start_queue_at_epoch: 50
 freeze_prototypes_epochs: 2
 n_batches_in_queue: 15
 temperature: 0.1
-crop_sizes: [32, 16]
+crop_sizes: [32, 24]
 crop_counts: [2, 6]
+crop_max_scales: [1.0, 0.14]
+crop_min_scales: [0.14, 0.05]
 
 trust_coefficient: 0.02
 clip_lr: True
@@ -28,18 +30,21 @@ train_batch_size: 256
 train_accumulate_grad_batches: 1
 train_epochs: 500
 
-test_batch_size: 256
+test_batch_size: 128
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
 optimizer:
   name: "lars"
-  train_learning_rate: 0.6
-  classifier_learning_rate: 0.1
+  train_learning_rate: 0.3
+  classifier_learning_rate: 0.04
   weight_decay: 1.0e-6
 
-num_workers: 4
+num_workers: 8
 set_float32_matmul_precision: "high"
+
+# Tracking
+wandb: True
 
 # Augmentations
 gaussian_blur: [0.0, 0.0]
@@ -48,6 +53,10 @@ brightness: 0.8
 contrast: 0.8
 saturation: 0.8
 hue: 0.2
+
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
 
 # overwrite Pytorch Lightening default
 num_devices: 1

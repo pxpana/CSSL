@@ -18,8 +18,8 @@ from lightly.utils.scheduler import CosineWarmupScheduler, cosine_schedule
 from cssl.models.base_ssl import BaseSSL
 
 class BYOL(BaseSSL):
-    def __init__(self, backbone, config=None):
-        super().__init__(backbone, config)
+    def __init__(self, backbone, config=None, *args, **kwargs):
+        super().__init__(backbone, config, *args, **kwargs)
 
         self.projection_head = BYOLProjectionHead(
             input_dim=config.feature_dim, 

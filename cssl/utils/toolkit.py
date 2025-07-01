@@ -15,24 +15,27 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id, project="CSS
         mode = "max"
 
     callbacks = []
-    checkpoint_callback = ModelCheckpoint(
-                            #monitor=monitor,
-                            filename=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}",           
-                            #mode=mode,                    
-                            #save_last=True,                 
-                            verbose=True                  
-                        )
-    callbacks.append(checkpoint_callback)
-    callbacks.append(PROGRESS_BAR)
+    # checkpoint_callback = ModelCheckpoint(
+    #                         #monitor=monitor,
+    #                         filename=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}",           
+    #                         #mode=mode,                    
+    #                         #save_last=True,                 
+    #                         verbose=True                  
+    #                     )
+    # callbacks.append(checkpoint_callback)
+    #callbacks.append(PROGRESS_BAR)
 
-    wandb_logger = WandbLogger(
-        name=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}/{args.num_tasks}",
-        #version=f"{args.model_name}_{args.dataset}_{training_type}2",
-        group=f"scenario_{scenario_id}",
-        config={"task_id": task_id, "scenario_id": scenario_id},
-        log_model=False, 
-        project=project
-    )
+    if args.wandb:
+        wandb_logger = WandbLogger(
+            name=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}/{args.num_tasks}",
+            #version=f"{args.model_name}_{args.dataset}_{training_type}2",
+            group=f"scenario_{scenario_id}",
+            config={"task_id": task_id, "scenario_id": scenario_id},
+            log_model=False, 
+            project=project
+        )
+    else:
+        wandb_logger = None
 
     return callbacks, wandb_logger
 

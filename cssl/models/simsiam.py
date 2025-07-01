@@ -18,8 +18,8 @@ from lightly.utils.scheduler import CosineWarmupScheduler, cosine_schedule
 from cssl.models.base_ssl import BaseSSL
 
 class SimSiam(BaseSSL):
-    def __init__(self, backbone, config=None):
-        super().__init__(backbone, config)
+    def __init__(self, backbone, config=None, *args, **kwargs):
+        super().__init__(backbone, config, *args, **kwargs)
 
         self.projection_head = SimSiamProjectionHead(
             input_dim=config.feature_dim, 
@@ -46,9 +46,9 @@ class SimSiam(BaseSSL):
         x0, x1 = batch
 
         output = self.forward(x0)
-        _, z0, p0 = output["features"], output["projection"], output["prediction"]
+        z0, p0 = output["projection"], output["prediction"]
         output = self.forward(x1)
-        _, z1, p1 = output["features"], output["projection"], output["prediction"]
+        z1, p1 = output["projection"], output["prediction"]
         
         loss = (
             self.criterion(z0, p1) + self.criterion(z1, p0)

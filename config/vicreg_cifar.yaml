@@ -33,8 +33,8 @@ test_epochs: 100
 
 optimizer:
   name: "lars"
-  train_learning_rate: 0.3
-  classifier_learning_rate: 0.1
+  train_learning_rate: 0.1
+  classifier_learning_rate: 0.04
   weight_decay: 1.0e-4
 
 num_workers: 4
@@ -47,6 +47,10 @@ brightness: 0.4
 contrast: 0.4
 saturation: 0.2
 hue: 0.1
+
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
 
 # overwrite Pytorch Lightening default
 num_devices: 1

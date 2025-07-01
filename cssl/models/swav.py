@@ -14,8 +14,8 @@ from lightly.utils.scheduler import CosineWarmupScheduler, cosine_schedule
 from cssl.models.base_ssl import BaseSSL
 
 class SwAV(BaseSSL):
-    def __init__(self, backbone, config=None):
-        super().__init__(backbone, config)
+    def __init__(self, backbone, config=None, *args, **kwargs):
+        super().__init__(backbone, config, *args, **kwargs)
 
         self.projection_head = SwaVProjectionHead(
             input_dim=config.feature_dim, 
@@ -85,7 +85,7 @@ class SwAV(BaseSSL):
         # Calculate the SwAV loss.
         loss = self.criterion(
             high_resolution_outputs=multi_crop_logits[: self.crop_counts[0]],
-            low_resolution_outputs=multi_crop_logits[self.crop_counts[0] :],
+            low_resolution_outputs=multi_crop_logits[self.crop_counts[0]:],
             queue_outputs=queue_crop_logits,
         )
 

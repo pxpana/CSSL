@@ -1,6 +1,9 @@
 import os
 import argparse
 import yaml
+from rich.syntax import Syntax
+from rich.console import Console
+
 from copy import deepcopy
 import torch
 from torch.utils.data import DataLoader
@@ -149,7 +152,8 @@ def main(args):
             trainer.fit(linear_classifier, train_dataloaders = train_classifier_loader, val_dataloaders=test_classifier_loader)
 
 
-            wandb.finish()
+            if args.wandb:
+                wandb.finish()
 
 
 
@@ -172,5 +176,9 @@ if __name__ == "__main__":
     
     # Parse again with full argument list
     args = parser.parse_args(remaining_args)
+
+    console = Console()
+    yaml_str = yaml.dump(config, sort_keys=False, default_flow_style=False, indent=2)
+    console.print(Syntax(yaml_str, "yaml", theme="monokai", line_numbers=True))
     
     main(args)

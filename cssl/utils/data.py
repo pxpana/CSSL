@@ -215,18 +215,18 @@ def get_pretrain_transform(args):
             solarization_prob=args.solarization[1],
         )
 
-    if name in ["simclr", "byol", "barlowtwins", "mocov2plus"]:
+    if name in ["simclr", "byol", "barlowtwins", "mocov2plus", "vicreg", "simsiam"]:
         from lightly.transforms.multi_view_transform import MultiViewTransform
         transform = MultiViewTransform([dataset_transform1, dataset_transform2])
-    elif name == "simsiam":
-        from lightly.transforms import SimSiamTransform
-        transform = SimSiamTransform(input_size=args.image_dim)
-    elif name == "vicreg":
-        from lightly.transforms import VICRegTransform
-        transform = VICRegTransform(input_size=args.image_dim)
     elif name == "swav":
-        from lightly.transforms import SwaVTransform
-        transform = SwaVTransform(crop_sizes=args.crop_sizes)
+        from lightly.transforms.multi_crop_transform import MultiCropTranform
+        transform = MultiCropTranform(
+            crop_counts=args.crop_counts,
+            crop_sizes=args.crop_sizes,
+            crop_max_scales=args.crop_max_scales,
+            crop_min_scales=args.crop_min_scales,
+            transforms=dataset_transform1,
+        )
 
     else:
         assert 0
