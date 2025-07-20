@@ -13,11 +13,9 @@ from lightly.utils.debug import std_of_l2_normalized
 from lightly.utils.scheduler import CosineWarmupScheduler, cosine_schedule
 from cssl.models.base_ssl import BaseSSL
 
-CROP_COUNTS = (2, 6)
-
 class DINO(BaseSSL):
-    def __init__(self, backbone, config=None):
-        super().__init__(backbone, config)
+    def __init__(self, backbone, config=None, *args, **kwargs):
+        super().__init__(backbone, config, *args, **kwargs)
 
         self.projection_head = DINOProjectionHead(
             input_dim=config.feature_dim, 
@@ -39,15 +37,17 @@ class DINO(BaseSSL):
             warmup_teacher_temp_epochs=5
         )
 
+        self.start_value = config.momentum_encoder["base_tau"]
+        self.end_value = config.momentum_encoder["final_tau"]
+
     def forward_teacher(self, x):
         y = self.teacher_backbone(x).flatten(start_dim=1)
-        z = self.projection_head_momentum(y)
+        z = self.teacher_head(y)
         z = z.detach()
         return z
 
     def training_step(self, batch, batch_idx):
-        global_views = torch.cat(batch[:2])
-        local_views = torch.cat(batch[2:])
+        global_views = batch[:2]
 
         # Momentum update teacher.
         momentum = cosine_schedule(

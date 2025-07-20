@@ -1,4 +1,5 @@
-model_name: "SimCLR"
+model_name: "DCLW"
+plugin: "experience_replay"
 split_strategy: "class"
 dataset: "cifar100"
 image_dim: 32
@@ -28,7 +29,8 @@ optimizer:
   classifier_learning_rate: 0.004
   weight_decay: 1.0e-5
 
-temperature: 0.2
+temperature: 0.1
+sigma: 0.5
 
 test_batch_size: 128
 test_accumulate_grad_batches: 1
@@ -36,6 +38,9 @@ test_epochs: 100
 
 num_workers: 8
 set_float32_matmul_precision: "high"
+
+# Tracking
+wandb: False
 
 # Augmentations
 gaussian_blur: [0.0, 0.0]
@@ -48,6 +53,11 @@ hue: 0.2
 # Classifier parameters
 knn_neighbours: 200
 knn_temperature: 0.1
+
+# Experience Replay parameters
+buffer_size: 500
+
+
 
 # overwrite Pytorch Lightening default
 num_devices: 1

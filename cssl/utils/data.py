@@ -195,7 +195,7 @@ def get_pretrain_transform(args):
     name = args.model_name.lower()
     pretrain_collate_function=None
 
-    if dataset_name in ["cifar100"]:
+    if dataset_name in ["cifar100"] and name not in ["dino"]:
         from cssl.utils import CifarTransform
         dataset_transform1 = CifarTransform(
             brightness=args.brightness,
@@ -215,7 +215,7 @@ def get_pretrain_transform(args):
             solarization_prob=args.solarization[1],
         )
 
-    if name in ["simclr", "byol", "barlowtwins", "mocov2plus", "vicreg", "simsiam"]:
+    if name in ["simclr", "dclw", "byol", "barlowtwins", "mocov2plus", "vicreg", "simsiam"]:
         from lightly.transforms.multi_view_transform import MultiViewTransform
         transform = MultiViewTransform([dataset_transform1, dataset_transform2])
     elif name == "swav":
@@ -227,6 +227,18 @@ def get_pretrain_transform(args):
             crop_min_scales=args.crop_min_scales,
             transforms=dataset_transform1,
         )
+    elif name == "dino":
+        from lightly.transforms.dino_transform import DINOTransform
+        transform = DINOTransform(
+            global_crop_size=args.image_dim,
+            local_crop_size=args.local_crop_size,
+            cj_bright=args.brightness,
+            cj_contrast=args.contrast,
+            cj_sat=args.saturation,
+            cj_hue=args.hue,
+        )
+
+
 
     else:
         assert 0

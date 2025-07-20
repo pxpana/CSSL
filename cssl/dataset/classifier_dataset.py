@@ -13,6 +13,8 @@ class ClassifierDataset(Dataset):
         if tasks is not None:
             self.label_to_tasks = self.create_label_task_map(tasks)
 
+        self.targets = [item[1] for item in data]
+
     def __getitem__(self, idx):
         image = self.data[idx][0]
         label = self.data[idx][1]

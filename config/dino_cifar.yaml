@@ -1,16 +1,21 @@
 model_name: "DINO"
-
+split_strategy: "class"
 dataset: "cifar100"
 image_dim: 32
 
 num_classes: 100
-num_tasks: 1
+num_tasks: 5
 seeds: [5]
 
 feature_dim: 512
 projection_hidden_dim: 2048
 projection_output_dim: 256
 prediction_hidden_dim: 4096
+
+global_crop_size: 32
+local_crop_size: 24
+crop_max_scales: [1.0, 0.14]
+crop_min_scales: [0.14, 0.05]
 
 momentum_encoder:
   base_tau: 0.99
@@ -24,18 +29,31 @@ train_epochs: 500
 trust_coefficient: 0.02
 clip_lr: True
 
-test_batch_size: 256
+test_batch_size: 128
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
 optimizer:
   name: "lars"
-  train_learning_rate: 0.3
-  classifier_learning_rate: 0.1
+  train_learning_rate: 0.03
+  classifier_learning_rate: 0.004
   weight_decay: 1.0e-6
 
 num_workers: 4
 set_float32_matmul_precision: "high"
+
+# Tracking
+wandb: True
+
+# Augmentations
+brightness: 0.4
+contrast: 0.4
+saturation: 0.2
+hue: 0.1
+
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
 
 # overwrite Pytorch Lightening default
 num_devices: 1

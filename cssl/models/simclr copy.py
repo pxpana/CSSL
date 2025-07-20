@@ -1,10 +1,15 @@
 import torch
+from lightly import loss
 from lightly.models.modules import SimCLRProjectionHead
 from lightly.utils.debug import std_of_l2_normalized
 
 from cssl.models.base_ssl import BaseSSL
+from lightly.utils.benchmarking.linear_classifier import FinetuneClassifier
 
-class SimCLR(BaseSSL):
+class Supervised(
+    BaseSSL,
+    FinetuneClassifier
+):
     def __init__(self, backbone, config=None, *args, **kwargs):
         super().__init__(backbone, config, *args, **kwargs)
 
@@ -15,19 +20,10 @@ class SimCLR(BaseSSL):
             num_layers=config.num_layers,
             batch_norm=config.projection_batchnorm,
         )
-
-        if config.loss["name"] == "dclw":
-            from lightly.loss.dcl_loss import DCLWLoss
-            self.criterion = DCLWLoss(
-                temperature=config.loss["temperature"], 
-                sigma=config.loss["sigma"]
-            )
-        elif config.loss["name"] == "ntxent":
-            from lightly.loss import NTXentLoss
-            self.criterion = NTXentLoss(
-                temperature=config.loss["temperature"],
-                gather_distributed=True,
-            )
+        self.criterion = loss.NTXentLoss(
+            temperature=config.temperature,
+            gather_distributed=True,
+        )
 
     def training_step(self, batch, batch_index):
         view0, view1 = batch[0], batch[1]
