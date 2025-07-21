@@ -16,11 +16,11 @@ class VICReg(BaseSSL):
             num_layers=config.projection_layers
         )
         self.criterion = loss.VICRegLoss(
-            lambda_param=config.sim_loss_weight,
-            mu_param=config.var_loss_weight,
-            nu_param=config.cov_loss_weight,
+            lambda_param=config.loss["sim_loss_weight"],
+            mu_param=config.loss["var_loss_weight"],
+            nu_param=config.loss["cov_loss_weight"],
             gather_distributed=config.gather_distributed,
-            eps=config.epsilon
+            eps=config.loss["epsilon"]
         )
     
     def training_step(self, batch, batch_index):

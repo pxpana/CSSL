@@ -30,13 +30,13 @@ class MoCov2Plus(BaseSSL):
         self.key_backbone = copy.deepcopy(self.backbone)
         self.key_projection_head = copy.deepcopy(self.projection_head)
         self.criterion0 = loss.NTXentLoss(
-            temperature=config.temperature,
-            memory_bank_size=(config.queue_size, config.output_dim),
+            temperature=config.loss["temperature"],
+            memory_bank_size=(config.loss["queue_size"], config.output_dim),
             gather_distributed=True,
         )
         self.criterion1 = loss.NTXentLoss(
-            temperature=config.temperature,
-            memory_bank_size=(config.queue_size, config.output_dim),
+            temperature=config.loss["temperature"],
+            memory_bank_size=(config.loss["queue_size"], config.output_dim),
             gather_distributed=True,
         )
 

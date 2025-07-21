@@ -29,8 +29,8 @@ class BarlowTwins(BaseSSL):
         )
 
         self.criterion = BarlowTwinsLoss(
-            lambda_param=config.lambda_param, 
-            scale_loss=config.scale_loss
+            lambda_param=config.loss["lambda_param"], 
+            scale_loss=config.loss["scale_loss"]
         )
 
     def training_step(self, batch, batch_index):

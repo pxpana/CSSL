@@ -55,6 +55,18 @@ def objective(trial):
         config.loss["temperature"] = trial.suggest_float("temperature", 0.01, 1.0, log=True)
     if "sigma" in config.loss:
         config.loss["sigma"] = trial.suggest_float("sigma", 0.01, 1.0, log=True)
+    if "lambda_param" in config.loss:
+        config.loss["lambda_param"] = trial.suggest_float("lambda_param", 0.01, 1.0, log=True)
+    if "scale_loss" in config.loss:
+        config.loss["scale_loss"] = trial.suggest_float("scale_loss", 0.01, 1.0, log=True)
+    if "sim_loss_weight" in config.loss:
+        config.loss["sim_loss_weight"] = trial.suggest_float("sim_loss_weight", 1.0, 100.0, log=True)
+    if "var_loss_weight" in config.loss:
+        config.loss["var_loss_weight"] = trial.suggest_float("var_loss_weight", 1.0, 100.0, log=True)
+    if "cov_loss_weight" in config.loss:
+        config.loss["cov_loss_weight"] = trial.suggest_float("cov_loss_weight", 0.01, 100.0, log=True)
+    if "epsilon" in config.loss:
+        config.loss["epsilon"] = trial.suggest_float("epsilon", 0.01, 1.0, log=True)
 
     # Train the model
     results = train(config)
@@ -160,12 +172,26 @@ def train(config):
             check_val_every_n_epoch=config.check_val_every_n_epoch,
             enable_checkpointing=False,
             logger=False,
+            callbacks=[TerminateOnNaN()],
         )
         trainer.fit(model, train_dataloaders=train_pretrain_loader, val_dataloaders=[train_classifier_loader, val_classifier_loader])
 
-        ave_accuracy = trainer.callback_metrics.get(f"KNN Ave. Accuracy").item()
+        if "KNN Ave. Accuracy" in trainer.callback_metrics:
+            ave_accuracy = trainer.callback_metrics.get(f"KNN Ave. Accuracy").item()
+        else:
+            ave_accuracy = 0.0
 
     return ave_accuracy
+
+from pytorch_lightning.callbacks import Callback
+
+class TerminateOnNaN(Callback):
+    def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
+        # Check if loss is NaN (handle both dict and tensor outputs)
+        loss = outputs.get('loss') if isinstance(outputs, dict) else outputs
+        if torch.is_tensor(loss) and torch.isnan(loss).any():
+            print("NaN detected in loss. Terminating training gracefully.")
+            trainer.should_stop = True  # Stops training at the end of the current batch
 
 
 if __name__ == "__main__":

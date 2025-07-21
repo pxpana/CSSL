@@ -30,10 +30,10 @@ class BaseSSL(LightningModule):
         self.optimizer_name = config.optimizer["name"]
         self.learning_rate = config.optimizer["train_learning_rate"]
         self.weight_decay = config.optimizer["weight_decay"]
-        self.momentum = config.momentum
+        self.optimizer_momentum = config.optimizer["momentum"]
         self.batch_size = (config.train_batch_size*config.train_accumulate_grad_batches)/config.num_devices
-        self.trust_coefficient = getattr(config, 'trust_coefficient', None)
-        self.clip_lr = getattr(config, 'clip_lr', None)
+        self.optimizer_trust_coefficient = config.optimizer.get("trust_coefficient", None)
+        self.optimizer_clip_lr = config.optimizer.get("clip_lr", False)
         self.name = config.model_name
         self.reference_batch_size = config.reference_batch_size
 
@@ -111,10 +111,10 @@ class BaseSSL(LightningModule):
                     },
                 ], 
                 lr=self.get_effective_lr(),
-                momentum=self.momentum, 
+                momentum=self.optimizer_momentum, 
                 weight_decay=self.weight_decay,
-                trust_coefficient=self.trust_coefficient,
-                clip_lr=self.clip_lr
+                trust_coefficient=self.optimizer_trust_coefficient,
+                clip_lr=self.optimizer_clip_lr
             )
 
             scheduler = {
@@ -137,7 +137,7 @@ class BaseSSL(LightningModule):
                     },
                 ],
                 lr=self.get_effective_lr(),
-                momentum=self.momentum,
+                momentum=self.optimizer_momentum,
                 weight_decay=self.weight_decay,
             )
 
