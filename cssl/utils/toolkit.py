@@ -20,9 +20,8 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id, project="CSS
         os.makedirs(dirpath)
 
     callbacks = []
-    checkpoint_callback = ModelCheckpoint(dirpath=dirpath)
+    checkpoint_callback = ModelCheckpoint(dirpath=dirpath, filename=f"{scenario_id}_task_{task_id}")
     callbacks.append(checkpoint_callback)
-    callbacks.append(PROGRESS_BAR)
 
     if args.wandb:
         wandb_logger = WandbLogger(

@@ -25,14 +25,14 @@ loss:
 
 optimizer:
   name: "lars"
-  train_learning_rate: 0.013720956969784632
-  classifier_learning_rate: 0.004
-  weight_decay: 0.00014806224665255064
+  train_learning_rate: 0.3
+  classifier_learning_rate: 0.1
+  weight_decay: 1.0e-4
   momentum: 0.9
   trust_coefficient: 0.02
   clip_lr: True
 
-num_workers: 8
+num_workers: 4
 set_float32_matmul_precision: "high"
 
 # Tracking

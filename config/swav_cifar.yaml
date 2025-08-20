@@ -40,11 +40,12 @@ optimizer:
   classifier_learning_rate: 0.004
   weight_decay: 1.0e-6
 
-num_workers: 8
+num_workers: 4
 set_float32_matmul_precision: "high"
 
 # Tracking
 wandb: True
+wandb_project: "CSSL"
 
 # Augmentations
 gaussian_blur: [0.0, 0.0]
