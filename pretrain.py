@@ -13,17 +13,15 @@ import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from torchvision.models import resnet18
 from cssl.utils import DataManager, get_model, get_classifier, get_callbacks_logger
-#from continuum.metrics.logger import Logger as LOGGER
 from cssl.metrics.logger import Logger, get_random_classifiers, get_random_init_accuracies
 from cssl.dataset import ClassifierDataset, PretrainDataset
 from lightly.models.utils import deactivate_requires_grad, activate_requires_grad
 
 def main(args):
     seeds = args.seeds
-    class_increment = int(args.num_classes / args.num_tasks)
 
     # initialize random classifiers equal to the number of tasks for FWT metric
-    for scenario_id in tqdm(seeds, desc="Scenerio"):
+    for scenario_id in tqdm(seeds, desc="Scenario"):
 
         seed_everything(scenario_id)
         torch.set_float32_matmul_precision(args.set_float32_matmul_precision)
@@ -94,7 +92,10 @@ def main(args):
         for task_id, train_dataset in tqdm(enumerate(data_manager.train_pretrain_scenario), desc="Training tasks"):
             print("TASK ID", task_id)
 
-            pretrain_dataset = PretrainDataset(data=train_dataset, transform=data_manager.pretrain_transform)
+            pretrain_dataset = PretrainDataset(
+                data=train_dataset, 
+                transform=data_manager.pretrain_transform
+            )
             train_pretrain_loader = DataLoader(
                 pretrain_dataset, 
                 batch_size=args.train_batch_size, 
@@ -102,10 +103,13 @@ def main(args):
                 shuffle=True
             )
 
-            pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(args, training_type="pretrain", task_id=task_id, scenario_id=scenario_id, project=args.wandb_project)
-            _, classifier_wandb_logger = get_callbacks_logger(args, training_type="classifier", task_id=task_id, scenario_id=scenario_id, project=args.wandb_project)
-
-            activate_requires_grad(model.backbone)
+            pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(
+                args, 
+                training_type="pretrain", 
+                task_id=task_id, 
+                scenario_id=scenario_id, 
+                project=args.wandb_project
+            )
 
             '''
             Train the model
@@ -123,34 +127,6 @@ def main(args):
                 num_sanity_val_steps=0,
             )
             trainer.fit(model, train_dataloaders=train_pretrain_loader, val_dataloaders=[train_classifier_loader, test_classifier_loader])
-
-            '''
-            Evaluate the model 
-            '''
-            
-            deactivate_requires_grad(model.backbone)
-
-            linear_classifier = get_classifier(
-                model.backbone, 
-                num_classes=args.num_classes,
-                logger=loggers["linear"],
-                args=args
-            )
-
-            # LINEAR CLASSIFIER
-
-            trainer = pl.Trainer(
-                max_epochs=args.test_epochs, 
-                accelerator=args.accelerator,
-                devices=args.gpu_devices,
-                enable_checkpointing=False,
-                logger=classifier_wandb_logger,
-                strategy=args.strategy,
-                precision=args.precision,
-                sync_batchnorm=args.sync_batchnorm,
-            )
-            trainer.fit(linear_classifier, train_dataloaders = train_classifier_loader, val_dataloaders=test_classifier_loader)
-
 
             if args.wandb:
                 wandb.finish()

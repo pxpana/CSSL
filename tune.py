@@ -26,12 +26,28 @@ from torch.utils.data import SubsetRandomSampler, DataLoader
 
 def tune(config):
     pruner = optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=10)
-    study = optuna.create_study(direction='minimize', pruner=pruner)
-    study.optimize(
-        objective, 
-        n_trials=int(config.num_trials),
+    study = optuna.create_study(
+        study_name='my_optimization_study',
+        storage=f'sqlite:///logs/{config.model_name}_{config.dataset}_{config.split_strategy}_tune.db',
+        load_if_exists=True,
+        direction='maximize', 
+        pruner=pruner,
     )
-    
+
+    df = study.trials_dataframe()
+    if len(df) != 0:
+        num_complete = len(df[df["state"]=="COMPLETE"])
+        print(f"Number of completed trials: {num_complete}")
+    else:
+        num_complete = 0
+        print("No completed trials found.")
+
+    if num_complete < config.num_trials:
+        study.optimize(
+            objective, 
+            n_trials=int(config.num_trials),
+        )
+
     print("Best trial:")
     trial = study.best_trial
     print(f"  Value: {trial.value}")
@@ -42,10 +58,6 @@ def tune(config):
     return study
 
 def objective(trial):
-    # Fixed Parameters
-    config.train_epochs = 250
-    config.check_val_every_n_epoch = 50
-
     """Objective function for hyperparameter tuning."""
     # Set the hyperparameters
     config.optimizer["train_learning_rate"] = trial.suggest_float("learning_rate", 1e-5, 5e-1, log=True)
@@ -55,10 +67,10 @@ def objective(trial):
         config.loss["temperature"] = trial.suggest_float("temperature", 0.01, 1.0, log=True)
     if "sigma" in config.loss:
         config.loss["sigma"] = trial.suggest_float("sigma", 0.01, 1.0, log=True)
-    if "lambda_param" in config.loss:
-        config.loss["lambda_param"] = trial.suggest_float("lambda_param", 0.01, 1.0, log=True)
-    if "scale_loss" in config.loss:
-        config.loss["scale_loss"] = trial.suggest_float("scale_loss", 0.01, 1.0, log=True)
+    # if "lambda_param" in config.loss:
+    #     config.loss["lambda_param"] = trial.suggest_float("lambda_param", 0.01, 1.0, log=True)
+    # if "scale_loss" in config.loss:
+    #     config.loss["scale_loss"] = trial.suggest_float("scale_loss", 0.01, 1.0, log=True)
     if "sim_loss_weight" in config.loss:
         config.loss["sim_loss_weight"] = trial.suggest_float("sim_loss_weight", 1.0, 100.0, log=True)
     if "var_loss_weight" in config.loss:
@@ -207,18 +219,27 @@ if __name__ == "__main__":
     
     # Main parser with all arguments
     parser = argparse.ArgumentParser(description="Tune CSSL Models")
-    parser.add_argument("--num_trials", type=str, required=True, help="")
+    parser.add_argument("--num_trials", type=int, default=50, help="")
+    parser.add_argument("--train_epochs", type=int, default=150, help="")
+    parser.add_argument("--check_val_every_n_epoch", type=int, default=50, help="")
     parser.add_argument("--config", type=str, required=True, help="Name of config file")
     
     # Add all config parameters as optional arguments
+ # Add config parameters, skipping duplicates
+    fixed_args = {'num_trials', 'train_epochs', 'check_val_every_n_epoch'}
     for key, value in config.items():
-        if isinstance(value, bool):
-            parser.add_argument(f"--{key}", action='store_true' if value else 'store_false')
-        else:
-            parser.add_argument(f"--{key}", type=type(value), default=value)
+        if key not in fixed_args:  # Skip already-added arguments
+            if isinstance(value, bool):
+                parser.add_argument(f"--{key}", action='store_true' if value else 'store_false')
+            else:
+                parser.add_argument(f"--{key}", type=type(value), default=value)
     
     # Parse all arguments
     config = parser.parse_args()
+
+    console = Console()
+    yaml_str = yaml.dump(config, sort_keys=False, default_flow_style=False, indent=2)
+    console.print(Syntax(yaml_str, "yaml", theme="monokai", line_numbers=True))
 
     study = tune(config)
     optuna.visualization.plot_optimization_history(study)

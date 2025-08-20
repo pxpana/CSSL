@@ -123,7 +123,7 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
         trainer.validate(linear_classifier, test_classifier_loader)
         results = trainer.callback_metrics
         random_init_accuracies["linear"] = [
-            results[f"Linear val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+            results[f"Linear Task {task_id+1} Data"].item() for task_id in range(num_tasks)
         ]
 
         print("[bold magenta]KNN: Evaluating random initialization accuracies...[/bold magenta]")
@@ -140,7 +140,7 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
         trainer.validate(knn_classifier, [train_classifier_loader, test_classifier_loader])
         results = trainer.callback_metrics
         random_init_accuracies["knn"] = [
-            results[f"KNN val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+            results[f"KNN Task {task_id+1} Data"].item() for task_id in range(num_tasks)
         ]
 
         print("[bold magenta]NCM: Evaluating random initialization accuracies...[/bold magenta]")
@@ -157,7 +157,7 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
         trainer.validate(ncm_classifier, [train_classifier_loader, test_classifier_loader])
         results = trainer.callback_metrics
         random_init_accuracies["ncm"] = [
-            results[f"NCM val_acc1_task{task_id+1}"].item() for task_id in range(num_tasks)
+            results[f"NCM Task {task_id+1} Data"].item() for task_id in range(num_tasks)
         ]
 
     return random_init_accuracies

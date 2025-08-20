@@ -19,9 +19,6 @@ class BaseClassifier(LightningModule):
         self.targets = []
         self.tasks = []
 
-        self.lr_decay_steps = [60, 80]
-
-
     def on_validation_epoch_end(self):
         if not self.trainer.sanity_checking:
             log_dict = {}
@@ -35,7 +32,7 @@ class BaseClassifier(LightningModule):
                 task_predicted_labels = predicted_labels[mask]
                 task_targets = targets[mask]
 
-                log_dict[f"{self.classifier_name} val_acc1_task{task_idx+1}"] = np.mean(task_predicted_labels == task_targets)
+                log_dict[f"{self.classifier_name} Task {task_idx+1} Data"] = np.mean(task_predicted_labels == task_targets)
 
             if self.metrics_logger is not None:
                 self.continual_logger(
@@ -52,7 +49,7 @@ class BaseClassifier(LightningModule):
                 log_dict[f"{self.classifier_name} PBWT"] = self.metrics_logger.positive_backward_transfer
                 log_dict[f"{self.classifier_name} Remembering"] = self.metrics_logger.remembering
                 log_dict[f"{self.classifier_name} Forgetting"] = self.metrics_logger.forgetting
-                
+
                 self.metrics_logger.end_epoch()
 
             self.log_dict(log_dict, sync_dist=True, prog_bar=True)
@@ -97,10 +94,14 @@ class BaseClassifier(LightningModule):
             weight_decay=0.0,
         )
         scheduler = {
-            "scheduler": MultiStepLR(
-                optimizer=optimizer, 
-                milestones=self.lr_decay_steps, 
-                gamma=0.1
+            "scheduler": CosineWarmupScheduler(
+                optimizer=optimizer,
+                warmup_epochs=int(
+                    self.trainer.estimated_stepping_batches
+                    / self.trainer.max_epochs
+                    * 10
+                ),
+                max_epochs=int(self.trainer.estimated_stepping_batches),
             ),
             "interval": "step",
         }

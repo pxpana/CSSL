@@ -86,6 +86,11 @@ class BaseSSL(LightningModule):
             self.ncm_classifier.on_validation_epoch_end()
 
         return super().on_validation_epoch_end()
+    
+    def teardown(self, stage):
+        self.knn_classifier.teardown(stage)
+        self.ncm_classifier.teardown(stage)
+        return super().teardown(stage)
 
     def get_effective_lr(self) -> float:
         """Compute the effective learning rate based on batch size and world size."""

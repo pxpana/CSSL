@@ -40,6 +40,10 @@ optimizer:
 num_workers: 4
 set_float32_matmul_precision: "high"
 
+# Tracking
+wandb: True
+wandb_project: "CSSL"
+
 # Augmentations
 gaussian_blur: [0.0, 0.0]
 solarization: [0.1, 0.1]

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
@@ -14,21 +15,18 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id, project="CSS
         monitor = "Accuracy"
         mode = "max"
 
+    dirpath = f"checkpoints/{args.model_name}_{args.dataset}_{args.split_strategy}".lower()
+    if os.path.exists(dirpath) is False:
+        os.makedirs(dirpath)
+
     callbacks = []
-    # checkpoint_callback = ModelCheckpoint(
-    #                         #monitor=monitor,
-    #                         filename=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}",           
-    #                         #mode=mode,                    
-    #                         #save_last=True,                 
-    #                         verbose=True                  
-    #                     )
-    # callbacks.append(checkpoint_callback)
-    #callbacks.append(PROGRESS_BAR)
+    checkpoint_callback = ModelCheckpoint(dirpath=dirpath)
+    callbacks.append(checkpoint_callback)
+    callbacks.append(PROGRESS_BAR)
 
     if args.wandb:
         wandb_logger = WandbLogger(
             name=f"{args.model_name}_{args.dataset}_{training_type}_scenario_{scenario_id}_task_{task_id}/{args.num_tasks}",
-            #version=f"{args.model_name}_{args.dataset}_{training_type}2",
             group=f"scenario_{scenario_id}",
             config={"task_id": task_id, "scenario_id": scenario_id},
             log_model=False, 
