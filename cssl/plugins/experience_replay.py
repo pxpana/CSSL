@@ -1,36 +1,42 @@
 import torch
 from cssl.utils import Buffer
 
-def experience_replay(Base):
+def experience_replay(Base, config):
+
+    buffer = Buffer(
+        buffer_size=config.buffer_size,
+        device=None
+    )
 
     class ExperienceReplay(Base):
         def __init__(self, backbone, config=None, loggers=None):
             super().__init__(backbone, config, loggers)
 
-            self.buffer = Buffer(
-                buffer_size=config.buffer_size,
-                device=self.device,
-            )
-            self.queue_size = config.queue_size
+            self.buffer = buffer
+            self.minibatch_size = config.minibatch_size
 
         def training_step(self, batch, batch_idx):
-            batch_size = len(batch[0])
-            for i in range(len(batch)):
-                view = batch[i]
+            images, tasks, transformed = batch[0], batch[1], batch[2]
 
-                if not self.buffer.is_empty():
-                    buffer_view = self.buffer.get_data(
-                        self.queue_size, 
-                        transform=self.dataloader.dataset.transform
-                    )
-
-                self.buffer.add_data(
-                    examples=view
+            mini_batch = None
+            if not self.buffer.is_empty() and tasks[0]>0:
+                mini_batch = self.buffer.get_data(
+                    self.minibatch_size, 
+                    transform=self.trainer.train_dataloader.dataset.transform,
+                    device=self.device,
+                    current_task=tasks[0]
                 )
 
-                if not self.buffer.is_empty():
-                    batch[i] = torch.cat((view, buffer_view))
+            self.buffer.add_data(
+                examples=images,
+                task_labels=tasks,
+                device=self.device
+            )
 
-            return super().training_step(batch, batch_idx)
+            if tasks[0]>0:
+                for i in range(len(transformed)):
+                    transformed[i] = torch.cat((transformed[i], mini_batch[i]), dim=0)
+
+            return super().training_step(transformed, batch_idx)
         
     return ExperienceReplay

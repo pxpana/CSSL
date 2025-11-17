@@ -1,15 +1,26 @@
-model_name: "BarlowTwins"
+model_name: "VICReg"
 split_strategy: "class"
 dataset: "cifar100"
-image_dim: 32
+
+plugin: ""
 
 num_classes: 100
 num_tasks: 5
 seeds: [5]
 
+image_dim: 32
 feature_dim: 512
 projection_hidden_dim: 2048
 projection_output_dim: 2048
+projection_layers: 2
+
+loss:
+  sim_loss_weight: 17.17282564238835
+  var_loss_weight: 81.19917022390796
+  cov_loss_weight: 0.3058921287431575
+  epsilon: 0.49145218206036034
+
+gather_distributed: False
 
 train_batch_size: 256
 train_accumulate_grad_batches: 1
@@ -19,15 +30,11 @@ test_batch_size: 128
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
-loss:
-  scale_loss: 0.1
-  lambda_param: 5.0e-3
-
 optimizer:
   name: "lars"
-  train_learning_rate: 0.3
+  train_learning_rate: 0.21606591367542882
   classifier_learning_rate: 0.1
-  weight_decay: 1.0e-4
+  weight_decay: 5.538632168859102e-06
   momentum: 0.9
   trust_coefficient: 0.02
   clip_lr: True
@@ -41,11 +48,15 @@ wandb_project: "CSSL"
 
 # Augmentations
 gaussian_blur: [0.0, 0.0]
-solarization: [0.0, 0.2]
+solarization: [0.1, 0.1]
 brightness: 0.4
 contrast: 0.4
 saturation: 0.2
 hue: 0.1
+
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
 
 # overwrite Pytorch Lightening default
 num_devices: 1
@@ -54,10 +65,6 @@ sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
 precision: 16-mixed
-
-# Classifier parameters
-knn_neighbours: 200
-knn_temperature: 0.1
 
 # Hard defaults
 reference_batch_size: 256

@@ -1,7 +1,9 @@
-model_name: "VICReg"
+model_name: "SimSiam"
 split_strategy: "class"
 dataset: "cifar100"
 image_dim: 32
+
+plugin: ""
 
 num_classes: 100
 num_tasks: 5
@@ -9,16 +11,10 @@ seeds: [5]
 
 feature_dim: 512
 projection_hidden_dim: 2048
-projection_output_dim: 2048
-projection_layers: 2
+output_dim: 2048
+prediction_hidden_dim: 512
 
-loss:
-  sim_loss_weight: 25.0
-  var_loss_weight: 25.0
-  cov_loss_weight: 1.0
-  epsilon: 0.2
-
-gather_distributed: False
+temperature: 0.2
 
 train_batch_size: 256
 train_accumulate_grad_batches: 1
@@ -30,9 +26,9 @@ test_epochs: 100
 
 optimizer:
   name: "lars"
-  train_learning_rate: 0.1
-  classifier_learning_rate: 0.04
-  weight_decay: 1.0e-4
+  train_learning_rate: 0.05
+  classifier_learning_rate: 0.004
+  weight_decay: 1.0e-5
   momentum: 0.9
   trust_coefficient: 0.02
   clip_lr: True
@@ -41,16 +37,16 @@ num_workers: 4
 set_float32_matmul_precision: "high"
 
 # Tracking
-wandb: True
+wandb: False
 wandb_project: "CSSL"
 
 # Augmentations
-gaussian_blur: [0.0, 0.0]
-solarization: [0.1, 0.1]
-brightness: 0.4
-contrast: 0.4
-saturation: 0.2
-hue: 0.1
+gaussian_blur: [0.5, 0.5]
+solarization: [0.0, 0.0]
+brightness: 0.8
+contrast: 0.8
+saturation: 0.8
+hue: 0.2
 
 # Classifier parameters
 knn_neighbours: 200

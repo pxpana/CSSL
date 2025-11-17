@@ -1,2 +1,3 @@
 from cssl.dataset.pretrain_dataset import PretrainDataset
 from cssl.dataset.classifier_dataset import ClassifierDataset
+from cssl.dataset.buffer_dataset import BufferDataset

@@ -62,6 +62,7 @@ class MoCov2Plus(BaseSSL):
 
     def training_step(self, batch, batch_idx):
         view0, view1 = batch[0], batch[1]
+        batch_size = view0.shape[0]
 
         # Encode queries.
         query_projections0 = self.forward(view0)["projection"]
@@ -88,8 +89,8 @@ class MoCov2Plus(BaseSSL):
         
         representation_std = std_of_l2_normalized((query_projections0 + query_projections1) / 2)
         
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
+        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
 
         return loss
 

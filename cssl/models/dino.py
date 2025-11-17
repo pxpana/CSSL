@@ -48,6 +48,7 @@ class DINO(BaseSSL):
 
     def training_step(self, batch, batch_idx):
         global_views = batch[:2]
+        batch_size = global_views[0].shape[0]
 
         # Momentum update teacher.
         momentum = cosine_schedule(
@@ -67,8 +68,8 @@ class DINO(BaseSSL):
         loss = self.criterion(teacher_projections, student_projections, epoch=self.current_epoch)
         representation_std = std_of_l2_normalized(student_outputs[0]["features"])
 
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
+        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
         return loss
 
     def on_after_backward(self):

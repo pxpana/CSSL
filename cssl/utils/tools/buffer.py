@@ -52,7 +52,7 @@ class Buffer:
                 setattr(self, attr_str, torch.zeros((self.buffer_size,
                         *attr.shape[1:]), dtype=typ, device=self.device))
 
-    def add_data(self, examples, labels=None, logits=None, task_labels=None):
+    def add_data(self, examples, labels=None, logits=None, task_labels=None, device=None):
         """
         Adds the data to the memory buffer according to the reservoir strategy.
         :param examples: tensor containing the images
@@ -68,52 +68,35 @@ class Buffer:
             index = reservoir(self.num_seen_examples, self.buffer_size)
             self.num_seen_examples += 1
             if index >= 0:
-                self.examples[index] = examples[i].to(self.device)
+                self.examples[index] = examples[i].to(device)
                 if labels is not None:
-                    self.labels[index] = labels[i].to(self.device)
+                    self.labels[index] = labels[i].to(device)
                 if logits is not None:
-                    self.logits[index] = logits[i].to(self.device)
+                    self.logits[index] = logits[i].to(device)
                 if task_labels is not None:
-                    self.task_labels[index] = task_labels[i].to(self.device)
+                    self.task_labels[index] = task_labels[i].to(device)
 
-    def get_data(self, size: int, transform: transforms=None, fsr=False, current_task=0) -> Tuple:
+    def get_data(self, size: int, transform: transforms=None, device=None, current_task=0) -> Tuple:
         """
         Random samples a batch of size items.
-        :param size: the number of requested items
+        :param size: the number of requjsted items
         :param transform: the transformation to be applied (data augmentation)
         :return:
         """
+        past_examples = self.examples.to(device)[self.task_labels.to(device) != current_task]
+        choice = np.random.choice(min(self.num_seen_examples, past_examples.shape[0]), size=size,
+                                    replace=False)
+        if transform is None: transform = lambda x: x
 
-        if size > self.examples.shape[0]:
-            size = self.examples.shape[0]
-        if fsr and current_task > 0:
-            past_examples = self.examples[self.task_labels != current_task]
-            if size > past_examples.shape[0]:
-                size = past_examples.shape[0]
-            if past_examples.shape[0]:
-                choice = np.random.choice(min(self.num_seen_examples, past_examples.shape[0]), size=size,
-                                          replace=False)
-                if transform is None: transform = lambda x: x
-                ret_tuple = (torch.stack([transform(ee.cpu())
-                                          for ee in past_examples[choice]]).to(
-                    self.device),)
-                for attr_str in self.attributes[1:]:
-                    if hasattr(self, attr_str):
-                        attr = getattr(self, attr_str)
-                        ret_tuple += (attr[self.task_labels != current_task][choice],)
-            else: return tuple([torch.tensor([0])] * 4)
-        else:
-            choice = np.random.choice(min(self.num_seen_examples, self.examples.shape[0]), size=min(self.num_seen_examples, size),
-                                      replace=False)
-            if transform is None: transform = lambda x: x
-            ret_tuple = (torch.stack([transform(ee.cpu())
-                                for ee in self.examples[choice]]).to(self.device),)
-            for attr_str in self.attributes[1:]:
-                if hasattr(self, attr_str):
-                    attr = getattr(self, attr_str)
-                    ret_tuple += (attr[choice],)
+        batch = []
+        for i in range(len(transform.transforms)):
+            transformed = []
+            for ee in past_examples[choice]:
+                transformed.append(transform.transforms[i](ee.cpu()).to(device))
+            transformed = torch.stack(transformed).to(device)
+            batch.append(transformed)
 
-        return ret_tuple
+        return batch
 
     def is_empty(self) -> bool:
         """

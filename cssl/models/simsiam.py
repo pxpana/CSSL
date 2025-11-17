@@ -38,12 +38,14 @@ class SimSiam(BaseSSL):
         features = self.backbone(x).flatten(start_dim=1)
         z = self.projection_head(features)
         p = self.prediction_head(z)
+        z = z.detach()
 
         output = {"features": features, "projection": z, "prediction": p}
         return output
     
     def training_step(self, batch, batch_idx):
         x0, x1 = batch
+        batch_size = x0.shape[0]
 
         output = self.forward(x0)
         z0, p0 = output["projection"], output["prediction"]
@@ -56,8 +58,8 @@ class SimSiam(BaseSSL):
 
         representation_std = std_of_l2_normalized((z0 + z1) / 2)
 
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
+        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
         return loss
 
     def get_params(self):

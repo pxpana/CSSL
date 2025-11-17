@@ -63,22 +63,23 @@ def objective(trial):
     config.optimizer["train_learning_rate"] = trial.suggest_float("learning_rate", 1e-5, 5e-1, log=True)
     config.optimizer["train_weight_decay"] = trial.suggest_float("weight_decay", 1e-6, 1e-3, log=True)
 
-    if "temperature" in config.loss:
-        config.loss["temperature"] = trial.suggest_float("temperature", 0.01, 1.0, log=True)
-    if "sigma" in config.loss:
-        config.loss["sigma"] = trial.suggest_float("sigma", 0.01, 1.0, log=True)
-    # if "lambda_param" in config.loss:
-    #     config.loss["lambda_param"] = trial.suggest_float("lambda_param", 0.01, 1.0, log=True)
-    # if "scale_loss" in config.loss:
-    #     config.loss["scale_loss"] = trial.suggest_float("scale_loss", 0.01, 1.0, log=True)
-    if "sim_loss_weight" in config.loss:
-        config.loss["sim_loss_weight"] = trial.suggest_float("sim_loss_weight", 1.0, 100.0, log=True)
-    if "var_loss_weight" in config.loss:
-        config.loss["var_loss_weight"] = trial.suggest_float("var_loss_weight", 1.0, 100.0, log=True)
-    if "cov_loss_weight" in config.loss:
-        config.loss["cov_loss_weight"] = trial.suggest_float("cov_loss_weight", 0.01, 100.0, log=True)
-    if "epsilon" in config.loss:
-        config.loss["epsilon"] = trial.suggest_float("epsilon", 0.01, 1.0, log=True)
+    if "loss" in config:
+        if "temperature" in config.loss:
+            config.loss["temperature"] = trial.suggest_float("temperature", 0.01, 1.0, log=True)
+        if "sigma" in config.loss:
+            config.loss["sigma"] = trial.suggest_float("sigma", 0.01, 1.0, log=True)
+        # if "lambda_param" in config.loss:
+        #     config.loss["lambda_param"] = trial.suggest_float("lambda_param", 0.01, 1.0, log=True)
+        # if "scale_loss" in config.loss:
+        #     config.loss["scale_loss"] = trial.suggest_float("scale_loss", 0.01, 1.0, log=True)
+        if "sim_loss_weight" in config.loss:
+            config.loss["sim_loss_weight"] = trial.suggest_float("sim_loss_weight", 1.0, 100.0, log=True)
+        if "var_loss_weight" in config.loss:
+            config.loss["var_loss_weight"] = trial.suggest_float("var_loss_weight", 1.0, 100.0, log=True)
+        if "cov_loss_weight" in config.loss:
+            config.loss["cov_loss_weight"] = trial.suggest_float("cov_loss_weight", 0.01, 100.0, log=True)
+        if "epsilon" in config.loss:
+            config.loss["epsilon"] = trial.suggest_float("epsilon", 0.01, 1.0, log=True)
 
     # Train the model
     results = train(config)
@@ -119,7 +120,7 @@ def train(config):
     )
 
 
-    random_classifiers = get_random_classifiers(config.num_tasks, config.num_classes, config.feature_dim)
+    random_classifiers = get_random_classifiers(config)
     random_init_accuracies = get_random_init_accuracies(
         random_classifiers,
         train_classifier_loader, 
@@ -214,18 +215,18 @@ if __name__ == "__main__":
     
     # Load config file
     config_name = initial_args.config.lower()
-    with open(f"config/{config_name}.yaml", 'r') as file:
+    with open(f"config/model/{config_name}.yaml", 'r') as file:
         config = yaml.safe_load(file)
     
     # Main parser with all arguments
     parser = argparse.ArgumentParser(description="Tune CSSL Models")
     parser.add_argument("--num_trials", type=int, default=50, help="")
-    parser.add_argument("--train_epochs", type=int, default=150, help="")
+    parser.add_argument("--train_epochs", type=int, default=250, help="")
     parser.add_argument("--check_val_every_n_epoch", type=int, default=50, help="")
     parser.add_argument("--config", type=str, required=True, help="Name of config file")
     
     # Add all config parameters as optional arguments
- # Add config parameters, skipping duplicates
+    # Add config parameters, skipping duplicates
     fixed_args = {'num_trials', 'train_epochs', 'check_val_every_n_epoch'}
     for key, value in config.items():
         if key not in fixed_args:  # Skip already-added arguments

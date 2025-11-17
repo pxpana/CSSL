@@ -1,0 +1,2 @@
+buffer_size: 500
+minibatch_size: 32

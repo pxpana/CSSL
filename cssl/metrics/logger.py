@@ -11,6 +11,7 @@ from torchvision.models import resnet18
 from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
+from lightly.models.utils import deactivate_requires_grad
 
 from cssl.models import LinearClassifier
 from cssl.models import KNNClassifier
@@ -111,7 +112,7 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
 
         print("[bold magenta]LINEAR: Evaluating random initialization accuracies...[/bold magenta]")
         trainer = pl.Trainer(
-            max_epochs=1, 
+            max_epochs=args.test_epochs, 
             accelerator=args.accelerator,
             devices=args.gpu_devices,
             enable_checkpointing=False,
@@ -120,7 +121,7 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
             sync_batchnorm=args.sync_batchnorm,
             logger=False
         )
-        trainer.validate(linear_classifier, test_classifier_loader)
+        trainer.fit(linear_classifier, train_classifier_loader, test_classifier_loader)
         results = trainer.callback_metrics
         random_init_accuracies["linear"] = [
             results[f"Linear Task {task_id+1} Data"].item() for task_id in range(num_tasks)
@@ -162,7 +163,7 @@ def get_random_init_accuracies(random_classifiers, train_classifier_loader, test
 
     return random_init_accuracies
 
-def get_random_classifiers(num_tasks, num_classes, feature_dim):
+def get_random_classifiers(args):
 
     random_classifiers = {"linear": [], "knn": [], "ncm": []}
         
@@ -171,27 +172,29 @@ def get_random_classifiers(num_tasks, num_classes, feature_dim):
     backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
     backbone.maxpool = torch.nn.Identity()
 
+    deactivate_requires_grad(backbone)
+
     linear_classifier = LinearClassifier(
         model=backbone,
-        batch_size_per_device=None,
-        lr=None,
-        feature_dim=feature_dim,
-        num_classes=num_classes,
-        num_tasks=num_tasks,
+        batch_size_per_device=args.test_batch_size,
+        lr=args.optimizer["classifier_learning_rate"],
+        feature_dim=args.feature_dim,
+        num_classes=args.num_classes,
+        num_tasks=args.num_tasks,
     )
 
     knn_classifier = KNNClassifier(
         model=backbone,
-        num_classes=num_classes,
+        num_classes=args.num_classes,
         knn_k=200,
         knn_t=0.1,
-        num_tasks=num_tasks,
+        num_tasks=args.num_tasks,
     )
 
     ncm_classifier = NCMClassifier(
         model=backbone,
-        num_classes=num_classes,
-        num_tasks=num_tasks,
+        num_classes=args.num_classes,
+        num_tasks=args.num_tasks,
     )
 
     random_classifiers["linear"] = linear_classifier

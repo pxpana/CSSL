@@ -1,4 +1,4 @@
-model_name: "SwAV"
+model_name: "DINO"
 split_strategy: "class"
 dataset: "cifar100"
 image_dim: 32
@@ -9,23 +9,18 @@ seeds: [5]
 
 feature_dim: 512
 projection_hidden_dim: 2048
-projection_output_dim: 128
+projection_output_dim: 256
+prediction_hidden_dim: 4096
 
-queue_size: 3840
-num_prototypes: 3000
-start_queue_at_epoch: 50
-freeze_prototypes_epochs: 2
-n_batches_in_queue: 15
-temperature: 0.1
-crop_sizes: [32, 24]
-crop_counts: [2, 6]
+global_crop_size: 32
+local_crop_size: 24
 crop_max_scales: [1.0, 0.14]
 crop_min_scales: [0.14, 0.05]
 
-trust_coefficient: 0.02
-clip_lr: True
+momentum_encoder:
+  base_tau: 0.99
+  final_tau: 1.0
 
-momentum: 0.9
 train_batch_size: 256
 train_accumulate_grad_batches: 1
 train_epochs: 500
@@ -36,9 +31,12 @@ test_epochs: 100
 
 optimizer:
   name: "lars"
-  train_learning_rate: 0.1
+  train_learning_rate: 0.03
   classifier_learning_rate: 0.004
   weight_decay: 1.0e-6
+  momentum: 0.9
+  trust_coefficient: 0.02
+  clip_lr: True
 
 num_workers: 4
 set_float32_matmul_precision: "high"
@@ -48,12 +46,10 @@ wandb: True
 wandb_project: "CSSL"
 
 # Augmentations
-gaussian_blur: [0.0, 0.0]
-solarization: [0.0, 0.0]
-brightness: 0.8
-contrast: 0.8
-saturation: 0.8
-hue: 0.2
+brightness: 0.4
+contrast: 0.4
+saturation: 0.2
+hue: 0.1
 
 # Classifier parameters
 knn_neighbours: 200

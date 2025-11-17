@@ -1,20 +1,17 @@
-model_name: "BYOL"
+model_name: "BarlowTwins"
 split_strategy: "class"
 dataset: "cifar100"
-image_dim: 32
+
+plugin: ""
 
 num_classes: 100
 num_tasks: 5
 seeds: [5]
 
+image_dim: 32
 feature_dim: 512
-projection_hidden_dim: 4096
-projection_output_dim: 256
-prediction_hidden_dim: 4096
-
-momentum_encoder:
-  base_tau: 0.99
-  final_tau: 1.0
+projection_hidden_dim: 2048
+projection_output_dim: 2048
 
 train_batch_size: 256
 train_accumulate_grad_batches: 1
@@ -24,11 +21,15 @@ test_batch_size: 128
 test_accumulate_grad_batches: 1
 test_epochs: 100
 
+loss:
+  scale_loss: 0.1
+  lambda_param: 5.0e-3
+
 optimizer:
   name: "lars"
-  train_learning_rate: 1.0
-  classifier_learning_rate: 0.04
-  weight_decay: 1.0e-5
+  train_learning_rate: 0.095786841357669
+  classifier_learning_rate: 0.1
+  weight_decay: 0.00015815912348515518
   momentum: 0.9
   trust_coefficient: 0.02
   clip_lr: True
@@ -48,10 +49,6 @@ contrast: 0.4
 saturation: 0.2
 hue: 0.1
 
-# Classifier parameters
-knn_neighbours: 200
-knn_temperature: 0.1
-
 # overwrite Pytorch Lightening default
 num_devices: 1
 gpu_devices: [0]
@@ -59,6 +56,10 @@ sync_batchnorm: True
 accelerator: "gpu"
 strategy: "auto"
 precision: 16-mixed
+
+# Classifier parameters
+knn_neighbours: 200
+knn_temperature: 0.1
 
 # Hard defaults
 reference_batch_size: 256

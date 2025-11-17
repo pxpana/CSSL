@@ -34,11 +34,11 @@ def get_model(backbone, config, loggers):
         from cssl.models import DINO
         Model = DINO
 
-    if "plugin" in config:
+    if isinstance(config.plugin, str):
         plugin_name = config.plugin.lower()
         if plugin_name == "experience_replay":
             from cssl.plugins import experience_replay
-            Model = experience_replay(Model)
+            Model = experience_replay(Model, config)
 
     model = Model(backbone=backbone, config=config, loggers=loggers)
 

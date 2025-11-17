@@ -35,6 +35,7 @@ class BarlowTwins(BaseSSL):
 
     def training_step(self, batch, batch_index):
         view0, view1 = batch
+        batch_size = view0.shape[0]
 
         z0 = self.forward(view0)["projection"]
         z1 = self.forward(view1)["projection"]
@@ -42,6 +43,6 @@ class BarlowTwins(BaseSSL):
 
         representation_std = std_of_l2_normalized((z0 + z1) / 2)
 
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
+        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
         return loss

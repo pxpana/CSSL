@@ -1,24 +1,23 @@
-model_name: "MoCov2Plus"
+model_name: "BYOL"
 split_strategy: "class"
 dataset: "cifar100"
-image_dim: 32
+
+plugin: ""
 
 num_classes: 100
 num_tasks: 5
 seeds: [5]
 
+image_dim: 32
 feature_dim: 512
-hidden_dim: 2048
-output_dim: 256
-
-loss:
-  queue_size: 65536
-  temperature: 0.011902114122156946
+projection_hidden_dim: 4096
+projection_output_dim: 256
+prediction_hidden_dim: 4096
 
 momentum_encoder:
   base_tau: 0.99
-  final_tau: 0.999
-  
+  final_tau: 1.0
+
 train_batch_size: 256
 train_accumulate_grad_batches: 1
 train_epochs: 500
@@ -29,14 +28,14 @@ test_epochs: 100
 
 optimizer:
   name: "lars"
-  train_learning_rate: 0.4188357518092328
-  classifier_learning_rate: 0.04
-  weight_decay: 8.324256758991283e-05
+  train_learning_rate: 1.0
+  classifier_learning_rate: 0.1
+  weight_decay: 1.0e-5
   momentum: 0.9
   trust_coefficient: 0.02
   clip_lr: True
 
-num_workers: 8
+num_workers: 4
 set_float32_matmul_precision: "high"
 
 # Tracking
@@ -44,12 +43,12 @@ wandb: True
 wandb_project: "CSSL"
 
 # Augmentations
-gaussian_blur: [0.5, 0.0]
-solarization: [0.0, 0.0]
-brightness: 0.8
-contrast: 0.8
-saturation: 0.8
-hue: 0.2
+gaussian_blur: [0.0, 0.0]
+solarization: [0.0, 0.2]
+brightness: 0.4
+contrast: 0.4
+saturation: 0.2
+hue: 0.1
 
 # Classifier parameters
 knn_neighbours: 200

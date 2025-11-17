@@ -48,6 +48,7 @@ class SwAV(BaseSSL):
         # first few items are high resolution crops and the rest are low
         # resolution crops.
         multi_crops = batch
+        batch_size = multi_crops[0].shape[0]
 
         # Normalize the prototypes so they are on the unit sphere.
         self.prototypes.normalize()
@@ -91,8 +92,8 @@ class SwAV(BaseSSL):
 
         representation_std = std_of_l2_normalized((multi_crop_projections[0] + multi_crop_projections[1]) / 2)
 
-        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)
-        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True)
+        self.log("train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
+        self.log("representation_std", representation_std, on_step=True, on_epoch=True, prog_bar=True, logger=True, batch_size=batch_size)
         return loss
 
     @torch.no_grad()
