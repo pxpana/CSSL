@@ -1,6 +1,12 @@
-model_name: "SimCLR"
+backbone: "resnet18"
+model: "SimCLR"
 split_strategy: "class"
 dataset: "cifar100"
+dataset_root: "data/"
+
+use_online_classifier: False
+use_knn_classifier: True
+use_ncm_classifier: True
 
 plugin: ""
 
@@ -21,17 +27,16 @@ train_epochs: 500
 
 optimizer:
   name: "lars"
-  train_learning_rate: 0.4900780150754638
+  train_learning_rate: 0.4
   classifier_learning_rate: 0.1
-  weight_decay: 4.221212070523056e-06
+  weight_decay: 1.0e-06
   momentum: 0.9
   trust_coefficient: 0.02
   clip_lr: True
 
 loss:
   name: "ntxent"
-  temperature: 0.18128347157937658
-  sigma: 0.858944993157288
+  temperature: 0.2
 
 test_batch_size: 128
 test_accumulate_grad_batches: 1

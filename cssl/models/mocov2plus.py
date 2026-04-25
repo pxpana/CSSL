@@ -59,6 +59,13 @@ class MoCov2Plus(BaseSSL):
             distributed=self.trainer.num_devices > 1,
         )
         return projections
+    
+    def forward(self, x):
+        features = self.backbone(x).flatten(start_dim=1)
+        z = self.projection_head(features)
+
+        output = {"features": features, "projection": z}
+        return output
 
     def training_step(self, batch, batch_idx):
         view0, view1 = batch[0], batch[1]

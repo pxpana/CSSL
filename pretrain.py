@@ -27,7 +27,7 @@ def main(args):
         torch.set_float32_matmul_precision(args.set_float32_matmul_precision)
 
         data_manager = DataManager(
-            args=args,
+            config=args,
         )
 
         train_classifier_dataset = ClassifierDataset(data=data_manager.train_dataset, transform=data_manager.train_classifier_transform, tasks=data_manager.tasks)

@@ -220,7 +220,7 @@ if __name__ == "__main__":
     
     # Main parser with all arguments
     parser = argparse.ArgumentParser(description="Tune CSSL Models")
-    parser.add_argument("--num_trials", type=int, default=50, help="")
+    parser.add_argument("--num_trials", type=int, default=25, help="")
     parser.add_argument("--train_epochs", type=int, default=250, help="")
     parser.add_argument("--check_val_every_n_epoch", type=int, default=50, help="")
     parser.add_argument("--config", type=str, required=True, help="Name of config file")

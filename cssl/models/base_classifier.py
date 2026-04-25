@@ -20,8 +20,8 @@ class BaseClassifier(LightningModule):
         self.tasks = []
 
     def on_validation_epoch_end(self):
+        log_dict = {}
         if not self.trainer.sanity_checking:
-            log_dict = {}
 
             predicted_labels = np.array(self.predicted_labels)
             targets = np.array(self.targets)
@@ -51,14 +51,13 @@ class BaseClassifier(LightningModule):
                 log_dict[f"{self.classifier_name} Forgetting"] = self.metrics_logger.forgetting
 
                 self.metrics_logger.end_epoch()
-
+            
             self.log_dict(log_dict, sync_dist=True, prog_bar=True)
-
         self.predicted_labels = []
         self.targets = []
         self.tasks = []
-
-        return super().on_validation_epoch_end()
+        
+        return log_dict
 
     def teardown(self, stage):
         if self.metrics_logger is not None:
@@ -81,32 +80,6 @@ class BaseClassifier(LightningModule):
                 ], 
                 subset="test" if split=="val" else "train"
             )
-
-    def configure_optimizers(  # type: ignore[override]
-        self,
-    ) -> Tuple[List[Optimizer], List[Dict[str, Union[Any, str]]]]:
-        parameters = list(self.get_trainable_parameters())
-
-        optimizer = SGD(
-            parameters,
-            lr=self.get_effective_lr(),
-            momentum=0.9,
-            weight_decay=0.0,
-        )
-        scheduler = {
-            "scheduler": CosineWarmupScheduler(
-                optimizer=optimizer,
-                warmup_epochs=int(
-                    self.trainer.estimated_stepping_batches
-                    / self.trainer.max_epochs
-                    * 10
-                ),
-                max_epochs=int(self.trainer.estimated_stepping_batches),
-            ),
-            "interval": "step",
-        }
-
-        return [optimizer], [scheduler]
 
     def append_train_features(self, features: Tensor, targets: Tensor) -> None:
         self._train_features.append(features)

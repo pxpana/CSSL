@@ -5,6 +5,9 @@ from typing import Any, Dict, List, Tuple, Union
 from lightly.utils.benchmarking.topk import mean_topk_accuracy
 from torch import Tensor
 
+from torch.optim import SGD, Optimizer
+from lightly.utils.scheduler import CosineWarmupScheduler
+
 from cssl.models import BaseClassifier
 
 class LinearClassifier(
@@ -58,3 +61,28 @@ class LinearClassifier(
 
         return loss
     
+    def configure_optimizers(  # type: ignore[override]
+        self,
+    ) -> Tuple[List[Optimizer], List[Dict[str, Union[Any, str]]]]:
+        parameters = list(self.get_trainable_parameters())
+
+        optimizer = SGD(
+            parameters,
+            lr=self.get_effective_lr(),
+            momentum=0.9,
+            weight_decay=0.0,
+        )
+        scheduler = {
+            "scheduler": CosineWarmupScheduler(
+                optimizer=optimizer,
+                warmup_epochs=int(
+                    self.trainer.estimated_stepping_batches
+                    / self.trainer.max_epochs
+                    * 10
+                ),
+                max_epochs=int(self.trainer.estimated_stepping_batches),
+            ),
+            "interval": "step",
+        }
+
+        return [optimizer], [scheduler]

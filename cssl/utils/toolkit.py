@@ -16,17 +16,19 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id, project="CSS
         mode = "max"
 
     plugin = "" if args.plugin=="" else f"_{args.plugin}"
-    dirpath = f"checkpoints/{args.model_name}_{args.dataset}_{args.split_strategy}{plugin}".lower()
+    dirpath = f"checkpoints/{args.model}_{args.dataset}_{args.split_strategy}{plugin}".lower()
     if os.path.exists(dirpath) is False:
         os.makedirs(dirpath)
 
     callbacks = []
     checkpoint_callback = ModelCheckpoint(dirpath=dirpath, filename=f"{scenario_id}_task_{task_id}/{args.num_tasks}")
     callbacks.append(checkpoint_callback)
+    callbacks.append(PROGRESS_BAR)
+    
 
     if args.wandb:
         wandb_logger = WandbLogger(
-            name=f"{args.model_name}_{args.dataset}{plugin}_{training_type}_scenario_{scenario_id}_task_{task_id}/{args.num_tasks}",
+            name=f"{args.model}_{args.dataset}{plugin}_{training_type}_scenario_{scenario_id}_task_{task_id}/{args.num_tasks}",
             group=f"scenario_{scenario_id}",
             config={"task_id": task_id, "scenario_id": scenario_id},
             log_model=False, 
@@ -46,8 +48,8 @@ PROGRESS_BAR = RichProgressBar(
         batch_progress="green_yellow",
         time="grey82",
         processing_speed="grey82",
-        metrics="#DB59A9",
-        metrics_text_delimiter="\n",
+        metrics="#9D42DA",
+        metrics_text_delimiter=", | 📊 ",
         metrics_format=".3e",
     )
 )

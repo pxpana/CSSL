@@ -1,8 +1,9 @@
+import os
 import torch
 import lightly
 
 def get_model(backbone, config, loggers):
-    name = config.model_name.lower()
+    name = config.model.lower()
     if name == "simclr":
         from cssl.models import SimCLR
         Model = SimCLR
@@ -44,6 +45,20 @@ def get_model(backbone, config, loggers):
 
     return model
 
+def get_backbone(name, dataset_name):
+    if name.lower() == "resnet18":
+        from torchvision.models import resnet18
+        backbone = resnet18(pretrained=False)
+
+        if dataset_name.startswith("cifar"):
+            backbone.fc = torch.nn.Identity()
+            backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
+            backbone.maxpool = torch.nn.Identity()
+
+    return backbone
+
+    
+
 
 def get_classifier(
     backbone, 
@@ -62,4 +77,4 @@ def get_classifier(
         num_tasks = args.num_tasks,
     )
 
-    return linear_classifier
+    return linear_classifier                         

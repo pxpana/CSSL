@@ -9,10 +9,11 @@ class PretrainDataset(Dataset):
 
     def __getitem__(self, idx):
         image = self.data[idx][0]
+        targets = self.data[idx][1]
 
         transformed = self.transform(image)
 
-        return transformed
+        return [*transformed, targets]
 
     def __len__(self):
         return len(self.data)

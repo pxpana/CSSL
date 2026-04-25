@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 from lightly.models.utils import deactivate_requires_grad
 
-from cssl.models import LinearClassifier
+from cssl.models import OnlineLinearClassifier
 from cssl.models import KNNClassifier
 from cssl.models import NCMClassifier
 
@@ -95,112 +95,148 @@ def forward_transfer(all_preds, all_targets, all_tasks, current_task, random_ini
     assert -1.0 <= metric <= 1.0, metric
     return metric 
 
-def get_random_init_accuracies(random_classifiers, train_classifier_loader, test_classifier_loader, num_tasks, device, args):
-    device = device.lower()
-    device = "cuda" if device in ["gpu", "cuda"] else "cpu"
-
+def get_random_init_accuracies(config, data_manager, random_classifiers):
     with torch.no_grad():
-        random_init_accuracies = {
-            "linear": [],
-            "knn": [],
-            "ncm": []
-        }
+        random_init_accuracies = {}
 
-        linear_classifier = random_classifiers["linear"]
-        knn_classifier = random_classifiers["knn"]
-        ncm_classifier = random_classifiers["ncm"]
+        if config.use_online_classifier:
+            print("[bold magenta]LINEAR: Evaluating random initialization accuracies...[/bold magenta]")
+            linear_classifier = random_classifiers["online_linear"]
+        
+            trainer = pl.Trainer(
+                max_epochs=config.test_epochs, 
+                accelerator=config.accelerator,
+                devices=config.gpu_devices,
+                enable_checkpointing=False,
+                strategy=config.strategy,
+                precision=config.precision,
+                sync_batchnorm=config.sync_batchnorm,
+                logger=False
+            )
+            trainer.fit(linear_classifier, data_manager.train_classifier_loader, data_manager.test_classifier_loader)
+            results = trainer.callback_metrics
+            random_init_accuracies["online_linear"] = [
+                results[f"OnlineLinearClassifier Task {task_id+1} Data"].item() for task_id in range(config.num_tasks)
+            ]
 
-        print("[bold magenta]LINEAR: Evaluating random initialization accuracies...[/bold magenta]")
-        trainer = pl.Trainer(
-            max_epochs=args.test_epochs, 
-            accelerator=args.accelerator,
-            devices=args.gpu_devices,
-            enable_checkpointing=False,
-            strategy=args.strategy,
-            precision=args.precision,
-            sync_batchnorm=args.sync_batchnorm,
-            logger=False
-        )
-        trainer.fit(linear_classifier, train_classifier_loader, test_classifier_loader)
-        results = trainer.callback_metrics
-        random_init_accuracies["linear"] = [
-            results[f"Linear Task {task_id+1} Data"].item() for task_id in range(num_tasks)
-        ]
+        if config.use_knn_classifier:
+            print("[bold magenta]KNN: Evaluating random initialization accuracies...[/bold magenta]")
+            knn_classifier = random_classifiers["knn"]
+            
+            trainer = pl.Trainer(
+                max_epochs=1, 
+                accelerator=config.accelerator,
+                devices=config.gpu_devices,
+                enable_checkpointing=False,
+                strategy=config.strategy,
+                precision=config.precision,
+                sync_batchnorm=config.sync_batchnorm,
+                logger=False
+            )
+            trainer.validate(knn_classifier, [data_manager.train_classifier_loader, data_manager.test_classifier_loader])
+            results = trainer.callback_metrics
+            random_init_accuracies["knn"] = [
+                results[f"KNN Task {task_id+1} Data"].item() for task_id in range(config.num_tasks)
+            ]
 
-        print("[bold magenta]KNN: Evaluating random initialization accuracies...[/bold magenta]")
-        trainer = pl.Trainer(
-            max_epochs=1, 
-            accelerator=args.accelerator,
-            devices=args.gpu_devices,
-            enable_checkpointing=False,
-            strategy=args.strategy,
-            precision=args.precision,
-            sync_batchnorm=args.sync_batchnorm,
-            logger=False
-        )
-        trainer.validate(knn_classifier, [train_classifier_loader, test_classifier_loader])
-        results = trainer.callback_metrics
-        random_init_accuracies["knn"] = [
-            results[f"KNN Task {task_id+1} Data"].item() for task_id in range(num_tasks)
-        ]
-
-        print("[bold magenta]NCM: Evaluating random initialization accuracies...[/bold magenta]")
-        trainer = pl.Trainer(
-            max_epochs=1, 
-            accelerator=args.accelerator,
-            devices=args.gpu_devices,
-            enable_checkpointing=False,
-            strategy=args.strategy,
-            precision=args.precision,
-            sync_batchnorm=args.sync_batchnorm,
-            logger=False
-        )
-        trainer.validate(ncm_classifier, [train_classifier_loader, test_classifier_loader])
-        results = trainer.callback_metrics
-        random_init_accuracies["ncm"] = [
-            results[f"NCM Task {task_id+1} Data"].item() for task_id in range(num_tasks)
-        ]
+        if config.use_ncm_classifier:
+            print("[bold magenta]NCM: Evaluating random initialization accuracies...[/bold magenta]")
+            ncm_classifier = random_classifiers["ncm"]
+            
+            trainer = pl.Trainer(
+                max_epochs=1, 
+                accelerator=config.accelerator,
+                devices=config.gpu_devices,
+                enable_checkpointing=False,
+                strategy=config.strategy,
+                precision=config.precision,
+                sync_batchnorm=config.sync_batchnorm,
+                logger=False
+            )
+            trainer.validate(ncm_classifier, [data_manager.train_classifier_loader, data_manager.test_classifier_loader])
+            results = trainer.callback_metrics
+            random_init_accuracies["ncm"] = [
+                results[f"NCM Task {task_id+1} Data"].item() for task_id in range(config.num_tasks)
+            ]
 
     return random_init_accuracies
 
-def get_random_classifiers(args):
-
-    random_classifiers = {"linear": [], "knn": [], "ncm": []}
-        
+def get_random_classifiers(config):
     backbone = resnet18(pretrained=False)
     backbone.fc = torch.nn.Identity()
     backbone.conv1 = torch.nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=2, bias=False)
     backbone.maxpool = torch.nn.Identity()
-
     deactivate_requires_grad(backbone)
-
-    linear_classifier = LinearClassifier(
-        model=backbone,
-        batch_size_per_device=args.test_batch_size,
-        lr=args.optimizer["classifier_learning_rate"],
-        feature_dim=args.feature_dim,
-        num_classes=args.num_classes,
-        num_tasks=args.num_tasks,
-    )
-
-    knn_classifier = KNNClassifier(
-        model=backbone,
-        num_classes=args.num_classes,
-        knn_k=200,
-        knn_t=0.1,
-        num_tasks=args.num_tasks,
-    )
-
-    ncm_classifier = NCMClassifier(
-        model=backbone,
-        num_classes=args.num_classes,
-        num_tasks=args.num_tasks,
-    )
-
-    random_classifiers["linear"] = linear_classifier
-    random_classifiers["knn"] = knn_classifier
-    random_classifiers["ncm"] = ncm_classifier
+    
+    random_classifiers = {}
+    if config.use_online_classifier:
+        linear_classifier = OnlineLinearClassifier(
+            backbone=backbone,
+            batch_size_per_device=config.test_batch_size,
+            lr=config.optimizer["classifier_learning_rate"],
+            feature_dim=config.feature_dim,
+            num_classes=config.num_classes,
+            num_tasks=config.num_tasks,
+        )
+        random_classifiers["online_linear"] = linear_classifier
+    if config.use_knn_classifier:
+        knn_classifier = KNNClassifier(
+            model=backbone,
+            num_classes=config.num_classes,
+            knn_k=config.knn_neighbours,
+            knn_t=config.knn_temperature,
+            num_tasks=config.num_tasks,
+        )
+        random_classifiers["knn"] = knn_classifier
+    if config.use_ncm_classifier:
+        ncm_classifier = NCMClassifier(
+            model=backbone,
+            num_classes=config.num_classes,
+            num_tasks=config.num_tasks,
+        )
+        random_classifiers["ncm"] = ncm_classifier
 
     return random_classifiers
+
+def get_loggers(config, data_manager):
+    random_classifiers = get_random_classifiers(config)
+    random_init_accuracies = get_random_init_accuracies(
+        config,
+        data_manager,
+        random_classifiers,
+    )
+
+    plugin = "" if config.plugin=="" else f"_{config.plugin}"
+    if not os.path.exists(f"logs/{config.model}_online_linear_{config.dataset}{plugin}_{config.num_tasks}"):
+        os.makedirs(f"logs/{config.model}_online_linear_{config.dataset}{plugin}_{config.num_tasks}")
+        os.makedirs(f"logs/{config.model}_knn_{config.dataset}{plugin}_{config.num_tasks}")
+        os.makedirs(f"logs/{config.model}_ncm_{config.dataset}{plugin}_{config.num_tasks}")
+
+    loggers = {}
+
+    if config.use_online_classifier:
+        classifier_logger = Logger(
+            random_init_accuracies=random_init_accuracies["online_linear"],
+            list_keywords=["performance"],
+            root_log=f"logs/{config.model}_online_linear_{config.dataset}{plugin}_{config.num_tasks}"
+        )
+        loggers["online_linear"] = classifier_logger
+    if config.use_knn_classifier:
+        classifier_logger = Logger(
+            random_init_accuracies=random_init_accuracies["knn"],
+            list_keywords=["performance"],
+            root_log=f"logs/{config.model}_knn_{config.dataset}{plugin}_{config.num_tasks}"
+        )
+        loggers["knn"] = classifier_logger
+    if config.use_ncm_classifier:
+        classifier_logger = Logger(
+            random_init_accuracies=random_init_accuracies["ncm"],
+            list_keywords=["performance"],
+            root_log=f"logs/{config.model}_ncm_{config.dataset}{plugin}_{config.num_tasks}"
+        )
+        loggers["ncm"] = classifier_logger
+
+    return loggers                            
+
 
     
