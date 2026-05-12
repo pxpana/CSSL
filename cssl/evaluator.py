@@ -1,48 +1,51 @@
-import yaml, argparse
+import os, yaml, argparse
 from tqdm import tqdm
 import wandb
+
+import torch
+
 import pytorch_lightning as pl
-from lightly.models.utils import deactivate_requires_grad, activate_requires_grad
 
-from cssl.utils import DataManager, get_callbacks_logger, get_classifier
-from cssl.utils.factory import get_backbone, get_model
-from cssl.metrics.logger import get_loggers
+from lightly.models.utils import deactivate_requires_grad
 
-class Trainer:
+from cssl.utils import DataManager, get_callbacks_logger
+from cssl.utils.factory import get_backbone
+from cssl.metrics.logger import get_loggers_classifier
+
+
+class Evaluator:
     def __init__(self, config_path):
         self.config = self.get_config(config_path)
-
+        
         # Get dataset
         self.data_manager = DataManager(config=self.config)
 
         # Get Loggers
-        self.loggers = get_loggers(self.config, self.data_manager)
-
-        # Get model
+        self.loggers = get_loggers_classifier(self.config, self.data_manager)
+        
         backbone = get_backbone(self.config.backbone, self.config.dataset)
-        self.model = get_model(backbone, self.config, loggers=self.loggers)
-
-        # Get plugins
-
-
-    def fit(self):
-         pass
-
-
-    def pretrain(self):
-        activate_requires_grad(self.model.backbone)
-
+        deactivate_requires_grad(backbone)
+        
+        self.model = self.task(backbone, self.config.task)
+        
+        
+    
+    def evaluate(self):
+        
         for scenario_id in tqdm(self.config.seeds, desc="⏳ Runing Scenerio"):
             train_classifier_loader = self.data_manager.train_classifier_loader
             test_classifier_loader = self.data_manager.test_classifier_loader
             
             for task_id, pretrain_dataloader in tqdm(enumerate(self.data_manager.pretrain_dataloaders), desc=f"💡 Training tasks"):
-
+                
+                self.model.backbone = self.load_checkpoint(self.model.backbone, scenario_id, task_id+1)
+                
                 pretrain_callbacks, pretrain_wandb_logger = get_callbacks_logger(
                     self.config, 
                     training_type="pretrain", 
                     task_id=task_id, 
                     scenario_id=scenario_id,
+                    project="CSSL_Downstream"
                 )
 
                 trainer = pl.Trainer(
@@ -51,7 +54,7 @@ class Trainer:
                     devices=self.config.gpu_devices,
                     accumulate_grad_batches=self.config.train_accumulate_grad_batches,
                     callbacks=pretrain_callbacks,
-                    logger=pretrain_wandb_logger,
+                    #logger=pretrain_wandb_logger,
                     strategy=self.config.strategy,
                     precision=self.config.precision,
                     sync_batchnorm=self.config.sync_batchnorm,
@@ -60,52 +63,31 @@ class Trainer:
 
                 trainer.fit(
                     self.model, 
-                    train_dataloaders=pretrain_dataloader, 
-                    val_dataloaders=[train_classifier_loader, test_classifier_loader]
+                    train_dataloaders=train_classifier_loader, 
+                    val_dataloaders=test_classifier_loader
                 )
                 
-                if self.config.wandb:
-                    wandb.finish()
-                
-                
-
-    def evaluate(self):
-        deactivate_requires_grad(self.model.backbone)
-
-        _, classifier_wandb_logger = get_callbacks_logger(
-            self.config, 
-            training_type="classifier", 
-            task_id=task_id, 
-            scenario_id=scenario_id, 
-            project=self.config.wandb_project
-        )
-            
-        linear_classifier = get_classifier(
-            self.model.backbone, 
-            num_classes=self.config.num_classes,
-            logger=None,
-            args=self.config
-        )
-            
-        trainer = pl.Trainer(
-            max_epochs=self.config.test_epochs, 
-            accelerator=self.config.accelerator,
-            devices=self.config.gpu_devices,
-            enable_checkpointing=False,
-            logger=classifier_wandb_logger,
-            strategy=self.config.strategy,
-            precision=self.config.precision,
-            sync_batchnorm=self.config.sync_batchnorm,
-        )
-        trainer.fit(
-             linear_classifier, 
-             train_dataloaders=train_classifier_loader, val_dataloaders=test_classifier_loader)
+                # if self.config.wandb:
+                #     wandb.finish()
+         
         
         
-
-
-    def setup(self): 
-         pass
+    
+    def load_checkpoint(self, backbone, scenario_id, task_id):
+        plugin = "" if self.config.plugin=="" else f"_{self.config.plugin}"
+        dirpath = f"checkpoints/{self.config.model.lower() }_{self.config.dataset}_{self.config.split_strategy}{plugin}"
+        filename = f"scenario_{scenario_id}_task_{task_id}"
+        checkpoint = torch.load(os.path.join(dirpath, f"{filename}.pth"), map_location="cpu")
+        
+        backbone.load_state_dict(checkpoint, strict=True)
+        return backbone
+        
+    def task(self, backbone, task_type):
+        if task_type == "classification":
+            from cssl.tasks.classification import Classification
+            model =  Classification(backbone=backbone, config=self.config, loggers=self.loggers)
+            
+        return model
     
     def get_config(self, path):
         with open(path, 'r') as file:

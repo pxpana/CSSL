@@ -27,7 +27,7 @@ class BaseClassifier(LightningModule):
             targets = np.array(self.targets)
             tasks = np.array(self.tasks)
 
-            for task_idx in range(self.num_tasks):
+            for task_idx in range(self.config.num_tasks):
                 mask = task_idx==tasks
                 task_predicted_labels = predicted_labels[mask]
                 task_targets = targets[mask]

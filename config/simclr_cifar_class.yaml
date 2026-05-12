@@ -3,6 +3,7 @@ model: "SimCLR"
 split_strategy: "class"
 dataset: "cifar100"
 dataset_root: "data/"
+task: "classification"
 
 use_online_classifier: False
 use_knn_classifier: True

@@ -24,6 +24,7 @@ class OnlineLinearClassifier(
         backbone = kwargs.pop("backbone", None)
         lr = kwargs.pop("lr", None)
         batch_size_per_device = kwargs.pop("batch_size_per_device", None)
+        self.config = kwargs.pop("config", None)
         self.classifier_name = "OnlineLinearClassifier"
         super().__init__(*args, **kwargs)
         

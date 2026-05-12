@@ -14,6 +14,7 @@ class NCMClassifier(
     def __init__(self, *args, **kwargs):
         self.metrics_logger = kwargs.pop("logger", None)
         self.num_tasks = kwargs.pop("num_tasks", None)
+        self.config = kwargs.pop("config", None)
         kwargs["knn_k"] = None  # NCM does not use k-nearest neighbors
         kwargs["knn_t"] = None  # NCM does not use temperature scaling
         self.classifier_name = "NCM"

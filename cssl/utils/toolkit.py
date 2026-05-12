@@ -4,6 +4,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, RichProgressBar
 from pytorch_lightning.callbacks.progress.rich_progress import RichProgressBarTheme
 
 from pytorch_lightning.loggers import WandbLogger
+from cssl.utils.callbacks import BackboneCheckpoint
 
 def get_callbacks_logger(args, training_type, task_id, scenario_id, project="CSSL"):
     task_id = task_id+1
@@ -21,7 +22,7 @@ def get_callbacks_logger(args, training_type, task_id, scenario_id, project="CSS
         os.makedirs(dirpath)
 
     callbacks = []
-    checkpoint_callback = ModelCheckpoint(dirpath=dirpath, filename=f"{scenario_id}_task_{task_id}/{args.num_tasks}")
+    checkpoint_callback = BackboneCheckpoint(dirpath=dirpath, filename=f"scenario_{scenario_id}_task_{task_id}")
     callbacks.append(checkpoint_callback)
     callbacks.append(PROGRESS_BAR)
     
